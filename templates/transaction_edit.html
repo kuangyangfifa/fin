@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}编辑流水 - 公司账户日流水管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('list_transactions') }}">流水查询</a></li>
+<li class="breadcrumb-item active">编辑流水</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">编辑流水</h4>
+        <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-pencil-square"></i> 编辑流水记录 #{{ transaction.id }}
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">
+                        <div class="row g-3">
+                            <!-- Date -->
+                            <div class="col-md-6">
+                                <label for="date" class="form-label">日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" id="date" name="date"
+                                       value="{{ transaction.date.strftime('%Y-%m-%d') }}" required>
+                            </div>
+
+                            <!-- Account -->
+                            <div class="col-md-6">
+                                <label for="account_id" class="form-label">账户 <span class="text-danger">*</span></label>
+                                <select class="form-select" id="account_id" name="account_id" required>
+                                    <option value="">请选择账户</option>
+                                    {% for account in accounts %}
+                                    <option value="{{ account.id }}" {% if transaction.account_id == account.id %}selected{% endif %}>
+                                        {{ account.account_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Summary -->
+                            <div class="col-12">
+                                <label for="summary" class="form-label">摘要</label>
+                                <input type="text" class="form-control" id="summary" name="summary"
+                                       maxlength="200" placeholder="请输入摘要描述"
+                                       value="{{ transaction.summary or '' }}">
+                            </div>
+
+                            <!-- Income -->
+                            <div class="col-md-6">
+                                <label for="income" class="form-label">收入</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    <input type="number" class="form-control" id="income" name="income"
+                                           value="{{ transaction.income }}" step="0.01" min="0">
+                                </div>
+                            </div>
+
+                            <!-- Expense -->
+                            <div class="col-md-6">
+                                <label for="expense" class="form-label">支出</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">¥</span>
+                                    <input type="number" class="form-control" id="expense" name="expense"
+                                           value="{{ transaction.expense }}" step="0.01" min="0">
+                                </div>
+                            </div>
+
+                            <!-- Note 1 -->
+                            <div class="col-md-6">
+                                <label for="note1" class="form-label">备注1</label>
+                                <input type="text" class="form-control" id="note1" name="note1"
+                                       maxlength="200" placeholder="可选"
+                                       value="{{ transaction.note1 or '' }}">
+                            </div>
+
+                            <!-- Note 2 -->
+                            <div class="col-md-6">
+                                <label for="note2" class="form-label">备注2</label>
+                                <input type="text" class="form-control" id="note2" name="note2"
+                                       maxlength="200" placeholder="可选"
+                                       value="{{ transaction.note2 or '' }}">
+                            </div>
+                        </div>
+
+                        <hr class="my-4">
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
+                                <i class="bi bi-x-circle"></i> 取消
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-check-circle"></i> 保存修改
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Current Info Card -->
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title text-info"><i class="bi bi-info-circle"></i> 当前记录信息</h6>
+                    <div class="row small text-muted">
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>创建时间：</strong>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') if transaction.created_at else '-' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p class="mb-1"><strong>更新时间：</strong>{{ transaction.updated_at.strftime('%Y-%m-%d %H:%M') if transaction.updated_at else '-' }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tips -->
+            <div class="card mt-3 border-warning">
+                <div class="card-body">
+                    <h6 class="card-title text-warning"><i class="bi bi-exclamation-triangle"></i> 注意事项</h6>
+                    <ul class="mb-0 small text-muted">
+                        <li>修改流水后，系统会自动重新计算该账户所有相关记录的余额</li>
+                        <li>如果修改了账户，原账户和新账户的余额都会重新计算</li>
+                        <li>收入和支出只需填写一项，另一项保持为0</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const incomeInput = document.getElementById('income');
+        const expenseInput = document.getElementById('expense');
+
+        // When income is entered, clear expense
+        incomeInput.addEventListener('input', function() {
+            if (parseFloat(this.value) > 0) {
+                expenseInput.value = '0';
+            }
+        });
+
+        // When expense is entered, clear income
+        expenseInput.addEventListener('input', function() {
+            if (parseFloat(this.value) > 0) {
+                incomeInput.value = '0';
+            }
+        });
+
+        // Form validation
+        document.querySelector('form').addEventListener('submit', function(e) {
+            const income = parseFloat(incomeInput.value) || 0;
+            const expense = parseFloat(expenseInput.value) || 0;
+
+            if (income === 0 && expense === 0) {
+                e.preventDefault();
+                alert('收入和支出不能同时为0，请至少填写一项。');
+                return false;
+            }
+        });
+    });
+</script>
+{% endblock %}

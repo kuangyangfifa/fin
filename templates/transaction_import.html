@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Excel导入 - 公司账户日流水管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('list_transactions') }}">流水查询</a></li>
+<li class="breadcrumb-item active">Excel导入</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">Excel导入</h4>
+        <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回列表
+        </a>
+    </div>
+
+    <div class="row">
+        <!-- Import Form -->
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-upload"></i> 上传Excel文件
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('import_transactions') }}" enctype="multipart/form-data">
+                        <div class="mb-4">
+                            <label for="file" class="form-label">选择Excel文件 <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
+                            <div class="form-text">支持 .xlsx 和 .xls 格式</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="form-label">文件格式要求</label>
+                            <div class="table-responsive">
+                                <table class="table table-sm table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>列名</th>
+                                            <th>说明</th>
+                                            <th>必填</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>日期</td>
+                                            <td>交易日期，格式：YYYY-MM-DD</td>
+                                            <td><span class="badge bg-danger">是</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>账户名称</td>
+                                            <td>系统中已存在的账户名称</td>
+                                            <td><span class="badge bg-danger">是</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>摘要</td>
+                                            <td>交易描述</td>
+                                            <td><span class="badge bg-secondary">否</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>收入</td>
+                                            <td>收入金额，支出时填0</td>
+                                            <td><span class="badge bg-danger">是</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>支出</td>
+                                            <td>支出金额，收入时填0</td>
+                                            <td><span class="badge bg-danger">是</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>备注1</td>
+                                            <td>附加信息</td>
+                                            <td><span class="badge bg-secondary">否</span></td>
+                                        </tr>
+                                        <tr>
+                                            <td>备注2</td>
+                                            <td>附加信息</td>
+                                            <td><span class="badge bg-secondary">否</span></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{{ url_for('download_import_template') }}" class="btn btn-outline-info">
+                                <i class="bi bi-download"></i> 下载导入模板
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-upload"></i> 开始导入
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="col-lg-4">
+            <div class="card border-info">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-info-circle"></i> 导入说明
+                </div>
+                <div class="card-body">
+                    <h6 class="card-title">导入流程</h6>
+                    <ol class="small">
+                        <li>先<a href="{{ url_for('accounts') }}">创建账户</a>（如果还没有）</li>
+                        <li>下载导入模板，按格式填写数据</li>
+                        <li>上传填写好的Excel文件</li>
+                        <li>系统会自动验证数据并导入</li>
+                    </ol>
+
+                    <hr>
+
+                    <h6 class="card-title">注意事项</h6>
+                    <ul class="small text-muted mb-0">
+                        <li>Excel第一行为表头，不会被导入</li>
+                        <li>日期格式必须是 YYYY-MM-DD</li>
+                        <li>账户名称必须与系统中完全一致</li>
+                        <li>收入和支出不能同时为0</li>
+                        <li>导入后系统会自动按日期排序</li>
+                        <li>导入过程中会自动计算账户余额</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card border-warning mt-3">
+                <div class="card-header bg-warning text-dark">
+                    <i class="bi bi-exclamation-triangle"></i> 常见问题
+                </div>
+                <div class="card-body small">
+                    <p class="mb-2"><strong>Q: 导入失败怎么办？</strong></p>
+                    <p class="text-muted mb-3">系统会显示具体的错误信息，根据提示修改Excel文件后重新导入。</p>
+
+                    <p class="mb-2"><strong>Q: 可以重复导入吗？</strong></p>
+                    <p class="text-muted mb-0">可以，但请注意避免重复数据。建议先查询确认数据是否已存在。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

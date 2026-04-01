@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}首页概览 - 公司账户日流水管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">首页概览</h4>
+        <div>
+            <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> 新增流水
+            </a>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card primary h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">账户总余额</h6>
+                            <h3 class="mb-0">¥{{ "{:,.2f}".format(total_balance) }}</h3>
+                        </div>
+                        <div class="bg-primary bg-opacity-10 p-2 rounded">
+                            <i class="bi bi-wallet2 text-primary fs-4"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ accounts|length }} 个账户</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card success h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">本月收入</h6>
+                            <h3 class="mb-0 text-success">¥{{ "{:,.2f}".format(month_income) }}</h3>
+                        </div>
+                        <div class="bg-success bg-opacity-10 p-2 rounded">
+                            <i class="bi bi-arrow-down-circle text-success fs-4"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ now.strftime('%Y年%m月') if now else '本月' }}</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card danger h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">本月支出</h6>
+                            <h3 class="mb-0 text-danger">¥{{ "{:,.2f}".format(month_expense) }}</h3>
+                        </div>
+                        <div class="bg-danger bg-opacity-10 p-2 rounded">
+                            <i class="bi bi-arrow-up-circle text-danger fs-4"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">{{ now.strftime('%Y年%m月') if now else '本月' }}</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6 col-xl-3">
+            <div class="card stat-card info h-100">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="text-muted mb-1">本月结余</h6>
+                            <h3 class="mb-0 text-info">¥{{ "{:,.2f}".format(month_income - month_expense) }}</h3>
+                        </div>
+                        <div class="bg-info bg-opacity-10 p-2 rounded">
+                            <i class="bi bi-calculator text-info fs-4"></i>
+                        </div>
+                    </div>
+                    <small class="text-muted">收入 - 支出</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <!-- Account Overview -->
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-bank"></i> 账户概览</span>
+                    <a href="{{ url_for('accounts') }}" class="btn btn-sm btn-outline-primary">管理账户</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if accounts %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>账户名称</th>
+                                    <th class="text-end">当前余额</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for account in accounts %}
+                                <tr>
+                                    <td>{{ account.name }}</td>
+                                    <td class="text-end">
+                                        <span class="{% if account.balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                            ¥{{ "{:,.2f}".format(account.balance) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                            <tfoot class="table-group-divider">
+                                <tr class="fw-bold">
+                                    <td>合计</td>
+                                    <td class="text-end">¥{{ "{:,.2f}".format(total_balance) }}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-bank text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">暂无账户</p>
+                        <a href="{{ url_for('accounts') }}" class="btn btn-sm btn-primary">创建账户</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Transactions -->
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history"></i> 最近交易记录</span>
+                    <a href="{{ url_for('list_transactions') }}" class="btn btn-sm btn-outline-primary">查看全部</a>
+                </div>
+                <div class="card-body p-0">
+                    {% if recent_transactions %}
+                    <div class="table-responsive">
+                        <table class="table table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>日期</th>
+                                    <th>账户</th>
+                                    <th>摘要</th>
+                                    <th class="text-end">收入</th>
+                                    <th class="text-end">支出</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trans in recent_transactions %}
+                                <tr>
+                                    <td>{{ trans.date.strftime('%Y-%m-%d') }}</td>
+                                    <td>{{ account_map.get(trans.account_id, '未知') }}</td>
+                                    <td>{{ trans.summary or '-' }}</td>
+                                    <td class="text-end text-success">
+                                        {% if trans.income > 0 %}¥{{ "{:,.2f}".format(trans.income) }}{% else %}-{% endif %}
+                                    </td>
+                                    <td class="text-end text-danger">
+                                        {% if trans.expense > 0 %}¥{{ "{:,.2f}".format(trans.expense) }}{% else %}-{% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <i class="bi bi-receipt text-muted" style="font-size: 3rem;"></i>
+                        <p class="text-muted mt-2">暂无交易记录</p>
+                        <a href="{{ url_for('add_transaction') }}" class="btn btn-sm btn-primary">录入流水</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
