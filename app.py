@@ -191,12 +191,13 @@ def register_routes(app):
 
         return render_template('accounts.html', accounts=account_data)
 
-    @app.route('/account/<int:account_id>/rename', methods=['POST'])
+    @app.route('/account/<int:account_id>/edit', methods=['POST'])
     @login_required
-    def rename_account(account_id):
-        """Rename an account."""
+    def edit_account(account_id):
+        """Edit account name and initial balance."""
         account = Account.query.get_or_404(account_id)
         new_name = request.form.get('new_name', '').strip()
+        new_initial_balance_str = request.form.get('new_initial_balance', '0')
 
         if not new_name:
             flash('账户名称不能为空。', 'danger')
@@ -208,11 +209,24 @@ def register_routes(app):
             flash(f'账户名称 "{new_name}" 已被使用。', 'danger')
             return redirect(url_for('accounts'))
 
+        try:
+            new_initial_balance = float(new_initial_balance_str) if new_initial_balance_str else 0.0
+        except ValueError:
+            flash('期初余额格式错误。', 'danger')
+            return redirect(url_for('accounts'))
+
         old_name = account.account_name
+        old_initial_balance = account.initial_balance
         account.account_name = new_name
+        account.initial_balance = new_initial_balance
         db.session.commit()
 
-        flash(f'账户已从 "{old_name}" 重命名为 "{new_name}"。', 'success')
+        # Recalculate all transaction balances if initial balance changed
+        if old_initial_balance != new_initial_balance:
+            Transaction.recalculate_balances(account_id)
+            flash(f'账户 "{old_name}" 已更新为 "{new_name}"，期初余额已调整，所有流水余额已重新计算。', 'success')
+        else:
+            flash(f'账户已从 "{old_name}" 重命名为 "{new_name}"。', 'success')
         return redirect(url_for('accounts'))
 
     @app.route('/account/<int:account_id>/delete', methods=['POST'])
