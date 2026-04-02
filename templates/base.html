@@ -157,6 +157,18 @@
                     <span>Excel导入</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint in ['reports', 'report_daily', 'report_monthly', 'report_by_note'] %}active{% endif %}" href="{{ url_for('reports') }}">
+                    <i class="bi bi-graph-up"></i>
+                    <span>报表分析</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'note_options' %}active{% endif %}" href="{{ url_for('note_options') }}">
+                    <i class="bi bi-tags"></i>
+                    <span>备注选项管理</span>
+                </a>
+            </li>
         </ul>
         <div class="p-3 border-top border-secondary">
             <div class="d-flex align-items-center justify-content-between">

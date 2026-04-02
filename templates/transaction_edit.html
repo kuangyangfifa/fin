@@ -77,17 +77,66 @@
                             <!-- Note 1 -->
                             <div class="col-md-6">
                                 <label for="note1" class="form-label">备注1</label>
-                                <input type="text" class="form-control" id="note1" name="note1"
-                                       maxlength="200" placeholder="可选"
-                                       value="{{ transaction.note1 or '' }}">
+                                <select class="form-select" id="note1" name="note1">
+                                    <option value="">-- 请选择 --</option>
+                                    {% for option in note_options.note1 %}
+                                    <option value="{{ option.option_value }}" {% if transaction.note1 == option.option_value %}selected{% endif %}>
+                                        {{ option.option_value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
 
                             <!-- Note 2 -->
                             <div class="col-md-6">
                                 <label for="note2" class="form-label">备注2</label>
-                                <input type="text" class="form-control" id="note2" name="note2"
-                                       maxlength="200" placeholder="可选"
-                                       value="{{ transaction.note2 or '' }}">
+                                <select class="form-select" id="note2" name="note2">
+                                    <option value="">-- 请选择 --</option>
+                                    {% for option in note_options.note2 %}
+                                    <option value="{{ option.option_value }}" {% if transaction.note2 == option.option_value %}selected{% endif %}>
+                                        {{ option.option_value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Note 3 -->
+                            <div class="col-md-6">
+                                <label for="note3" class="form-label">备注3</label>
+                                <select class="form-select" id="note3" name="note3">
+                                    <option value="">-- 请选择 --</option>
+                                    {% for option in note_options.note3 %}
+                                    <option value="{{ option.option_value }}" {% if transaction.note3 == option.option_value %}selected{% endif %}>
+                                        {{ option.option_value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Note 4 -->
+                            <div class="col-md-6">
+                                <label for="note4" class="form-label">备注4</label>
+                                <select class="form-select" id="note4" name="note4">
+                                    <option value="">-- 请选择 --</option>
+                                    {% for option in note_options.note4 %}
+                                    <option value="{{ option.option_value }}" {% if transaction.note4 == option.option_value %}selected{% endif %}>
+                                        {{ option.option_value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Note 5 -->
+                            <div class="col-md-6">
+                                <label for="note5" class="form-label">备注5</label>
+                                <select class="form-select" id="note5" name="note5">
+                                    <option value="">-- 请选择 --</option>
+                                    {% for option in note_options.note5 %}
+                                    <option value="{{ option.option_value }}" {% if transaction.note5 == option.option_value %}selected{% endif %}>
+                                        {{ option.option_value }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
 

@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+
+{% block title %}报表分析 - 公司账户日流水管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">报表分析</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">报表分析</h4>
+    </div>
+
+    <div class="row g-4">
+        <!-- Daily Report Card -->
+        <div class="col-md-4">
+            <a href="{{ url_for('report_daily') }}" class="text-decoration-none">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-calendar-day text-primary" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-primary">日流水分析</h5>
+                        <p class="card-text text-muted">按日期查看每日的收支情况和余额变化</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Monthly Report Card -->
+        <div class="col-md-4">
+            <a href="{{ url_for('report_monthly') }}" class="text-decoration-none">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-calendar-month text-success" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-success">月流水分析</h5>
+                        <p class="card-text text-muted">按月份统计收支情况，查看月度趋势</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+
+        <!-- Note-based Report Card -->
+        <div class="col-md-4">
+            <a href="{{ url_for('report_by_note') }}" class="text-decoration-none">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-tags text-info" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-info">备注维度分析</h5>
+                        <p class="card-text text-muted">按备注1-5维度分析收支情况</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <!-- Usage Tips -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <i class="bi bi-info-circle"></i> 使用说明
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-4">
+                    <h6><i class="bi bi-calendar-day text-primary"></i> 日流水分析</h6>
+                    <ul class="small text-muted">
+                        <li>查看指定日期范围内的每日收支</li>
+                        <li>追踪账户余额变化趋势</li>
+                        <li>支持按账户筛选</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-calendar-month text-success"></i> 月流水分析</h6>
+                    <ul class="small text-muted">
+                        <li>按年度查看月度统计</li>
+                        <li>分析月度收支趋势</li>
+                        <li>支持按账户筛选</li>
+                    </ul>
+                </div>
+                <div class="col-md-4">
+                    <h6><i class="bi bi-tags text-info"></i> 备注维度分析</h6>
+                    <ul class="small text-muted">
+                        <li>按备注1-5维度统计</li>
+                        <li>分析不同分类的收支情况</li>
+                        <li>支持按日/月汇总</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

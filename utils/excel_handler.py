@@ -31,7 +31,7 @@ def export_transactions_to_excel(transactions, account_map=None):
     )
 
     # Headers
-    headers = ['ID', '日期', '账户', '摘要', '收入', '支出', '余额', '备注1', '备注2']
+    headers = ['ID', '日期', '账户', '摘要', '收入', '支出', '余额', '备注1', '备注2', '备注3', '备注4', '备注5']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -55,6 +55,9 @@ def export_transactions_to_excel(transactions, account_map=None):
         ws.cell(row=row, column=7, value=trans.balance_after).border = thin_border
         ws.cell(row=row, column=8, value=trans.note1 or '').border = thin_border
         ws.cell(row=row, column=9, value=trans.note2 or '').border = thin_border
+        ws.cell(row=row, column=10, value=trans.note3 or '').border = thin_border
+        ws.cell(row=row, column=11, value=trans.note4 or '').border = thin_border
+        ws.cell(row=row, column=12, value=trans.note5 or '').border = thin_border
 
         total_income += trans.income
         total_expense += trans.expense
@@ -70,7 +73,7 @@ def export_transactions_to_excel(transactions, account_map=None):
     ws.cell(row=summary_row, column=7, value=total_income - total_expense).fill = summary_fill
 
     # Adjust column widths
-    column_widths = [8, 12, 20, 30, 12, 12, 12, 20, 20]
+    column_widths = [8, 12, 20, 30, 12, 12, 12, 20, 20, 20, 20, 20]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = width
 
@@ -97,7 +100,7 @@ def create_import_template():
     example_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 
     # Headers
-    headers = ['日期', '账户名称', '摘要', '收入', '支出', '备注1', '备注2']
+    headers = ['日期', '账户名称', '摘要', '收入', '支出', '备注1', '备注2', '备注3', '备注4', '备注5']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -106,8 +109,8 @@ def create_import_template():
 
     # Example data (will be highlighted)
     example_data = [
-        ['2024-01-15', '现金账户', '销售收入', 1000.00, 0, '', ''],
-        ['2024-01-16', '银行账户', '办公用品采购', 0, 200.00, '发票号001', ''],
+        ['2024-01-15', '现金账户', '销售收入', 1000.00, 0, '', '', '', '', ''],
+        ['2024-01-16', '银行账户', '办公用品采购', 0, 200.00, '发票号001', '', '', '', ''],
     ]
 
     for row_idx, row_data in enumerate(example_data, 2):
@@ -124,7 +127,7 @@ def create_import_template():
     ws.cell(row=9, column=1, value="4. 删除示例数据后填写真实数据")
 
     # Adjust column widths
-    column_widths = [12, 20, 30, 12, 12, 20, 20]
+    column_widths = [12, 20, 30, 12, 12, 20, 20, 20, 20, 20]
     for i, width in enumerate(column_widths, 1):
         ws.column_dimensions[get_column_letter(i)].width = width
 
@@ -164,6 +167,9 @@ def parse_excel_import(file_stream, account_name_to_id):
             date_str, account_name, summary, income, expense = row[0:5]
             note1 = row[5] if len(row) > 5 else ''
             note2 = row[6] if len(row) > 6 else ''
+            note3 = row[7] if len(row) > 7 else ''
+            note4 = row[8] if len(row) > 8 else ''
+            note5 = row[9] if len(row) > 9 else ''
 
             # Validate date
             if not date_str:
@@ -217,7 +223,10 @@ def parse_excel_import(file_stream, account_name_to_id):
                 'income': income,
                 'expense': expense,
                 'note1': str(note1) if note1 else '',
-                'note2': str(note2) if note2 else ''
+                'note2': str(note2) if note2 else '',
+                'note3': str(note3) if note3 else '',
+                'note4': str(note4) if note4 else '',
+                'note5': str(note5) if note5 else ''
             })
 
         if errors:

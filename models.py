@@ -58,6 +58,42 @@ class Account(db.Model):
         return f'<Account {self.account_name}>'
 
 
+class NoteOption(db.Model):
+    """Note options model for maintaining dropdown values for note fields."""
+    __tablename__ = 'note_options'
+
+    id = db.Column(db.Integer, primary_key=True)
+    note_field = db.Column(db.String(10), nullable=False, index=True)  # 'note1', 'note2', etc.
+    option_value = db.Column(db.String(200), nullable=False)
+    sort_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('note_field', 'option_value', name='unique_note_option'),
+    )
+
+    def __repr__(self):
+        return f'<NoteOption {self.note_field}: {self.option_value}>'
+
+    @staticmethod
+    def get_options_for_field(note_field):
+        """Get active options for a specific note field."""
+        return NoteOption.query.filter_by(
+            note_field=note_field,
+            is_active=True
+        ).order_by(NoteOption.sort_order, NoteOption.option_value).all()
+
+    @staticmethod
+    def get_all_options_dict():
+        """Get all options as a dictionary grouped by note field."""
+        options = {}
+        for field in ['note1', 'note2', 'note3', 'note4', 'note5']:
+            options[field] = NoteOption.get_options_for_field(field)
+        return options
+
+
 class Transaction(db.Model):
     """Transaction model for recording financial transactions."""
     __tablename__ = 'transactions'
@@ -71,6 +107,9 @@ class Transaction(db.Model):
     balance_after = db.Column(db.Float, default=0.0)
     note1 = db.Column(db.String(200))
     note2 = db.Column(db.String(200))
+    note3 = db.Column(db.String(200))
+    note4 = db.Column(db.String(200))
+    note5 = db.Column(db.String(200))
     created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, onupdate=datetime.utcnow)

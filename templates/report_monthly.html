@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+
+{% block title %}月流水分析 - 公司账户日流水管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('reports') }}">报表分析</a></li>
+<li class="breadcrumb-item active">月流水分析</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">月流水分析</h4>
+        <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回
+        </a>
+    </div>
+
+    <!-- Filter Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-funnel"></i> 查询条件
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ url_for('report_monthly') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">年份</label>
+                        <select class="form-select" name="year">
+                            {% for y in range(2020, 2031) %}
+                            <option value="{{ y }}" {% if year == y %}selected{% endif %}>{{ y }}年</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="bi bi-search"></i> 查询
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if months_data %}
+    <!-- Overall Summary -->
+    {% set total_income = months_data.values() | map(attribute='total_income') | sum %}
+    {% set total_expense = months_data.values() | map(attribute='total_expense') | sum %}
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-4">
+            <div class="card bg-success bg-opacity-10 border-success">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">年度总收入</small>
+                            <h4 class="mb-0 text-success">¥{{ "{:,.2f}".format(total_income) }}</h4>
+                        </div>
+                        <i class="bi bi-arrow-down-circle text-success fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-danger bg-opacity-10 border-danger">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">年度总支出</small>
+                            <h4 class="mb-0 text-danger">¥{{ "{:,.2f}".format(total_expense) }}</h4>
+                        </div>
+                        <i class="bi bi-arrow-up-circle text-danger fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info bg-opacity-10 border-info">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <small class="text-muted">年度结余</small>
+                            <h4 class="mb-0 {% if total_income - total_expense >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                ¥{{ "{:,.2f}".format(total_income - total_expense) }}
+                            </h4>
+                        </div>
+                        <i class="bi bi-calculator text-info fs-2"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Monthly Data Cards -->
+    {% for month_key, month_info in months_data.items() %}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-calendar-month"></i> {{ month_key }} 月</span>
+            <span class="badge bg-primary">
+                收入: ¥{{ "{:,.2f}".format(month_info.total_income) }} |
+                支出: ¥{{ "{:,.2f}".format(month_info.total_expense) }} |
+                净额: ¥{{ "{:,.2f}".format(month_info.total_income - month_info.total_expense) }}
+            </span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>账户</th>
+                            <th class="text-end">收入</th>
+                            <th class="text-end">支出</th>
+                            <th class="text-end">净额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for account_id, account_data in month_info.accounts.items() %}
+                        <tr>
+                            <td>{{ account_data.account_name }}</td>
+                            <td class="text-end text-success">
+                                {% if account_data.income > 0 %}¥{{ "{:,.2f}".format(account_data.income) }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-end text-danger">
+                                {% if account_data.expense > 0 %}¥{{ "{:,.2f}".format(account_data.expense) }}{% else %}-{% endif %}
+                            </td>
+                            <td class="text-end {% if account_data.net >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {% if account_data.net != 0 %}{{ "+" if account_data.net > 0 else "-" }}¥{{ "{:,.2f}".format(account_data.net|abs) }}{% else %}-{% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="table-group-divider">
+                        <tr class="fw-bold">
+                            <td>当月合计</td>
+                            <td class="text-end text-success">¥{{ "{:,.2f}".format(month_info.total_income) }}</td>
+                            <td class="text-end text-danger">¥{{ "{:,.2f}".format(month_info.total_expense) }}</td>
+                            <td class="text-end {% if month_info.total_income - month_info.total_expense >= 0 %}text-success{% else %}text-danger{% endif %}">
+                                {{ "+" if month_info.total_income - month_info.total_expense >= 0 else "-" }}¥{{ "{:,.2f}".format((month_info.total_income - month_info.total_expense)|abs) }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+            <p class="text-muted mt-3">{{ year }}年没有找到数据</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

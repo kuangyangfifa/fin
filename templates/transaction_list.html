@@ -127,6 +127,9 @@
                             <th class="text-end">余额</th>
                             <th>备注1</th>
                             <th>备注2</th>
+                            <th>备注3</th>
+                            <th>备注4</th>
+                            <th>备注5</th>
                             <th class="text-center">操作</th>
                         </tr>
                     </thead>
@@ -146,6 +149,9 @@
                             <td class="text-end fw-bold">¥{{ "{:,.2f}".format(trans.balance_after) }}</td>
                             <td>{{ trans.note1 or '-' }}</td>
                             <td>{{ trans.note2 or '-' }}</td>
+                            <td>{{ trans.note3 or '-' }}</td>
+                            <td>{{ trans.note4 or '-' }}</td>
+                            <td>{{ trans.note5 or '-' }}</td>
                             <td class="text-center">
                                 <a href="{{ url_for('edit_transaction', transaction_id=trans.id) }}" class="btn btn-sm btn-outline-primary btn-action">
                                     <i class="bi bi-pencil"></i> 编辑

@@ -3,10 +3,11 @@ import click
 from datetime import datetime, date
 from flask import Flask, render_template, request, redirect, url_for, flash, send_file, jsonify
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
+from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 
 from config import config
-from models import db, User, Account, Transaction
+from models import db, User, Account, Transaction, NoteOption
 from utils.excel_handler import export_transactions_to_excel, create_import_template, parse_excel_import
 
 # Initialize Flask app
@@ -21,6 +22,9 @@ def create_app(config_name=None):
     # Initialize extensions
     db.init_app(app)
 
+    # Initialize Flask-Migrate
+    migrate = Migrate(app, db)
+
     # Initialize Flask-Login
     login_manager = LoginManager()
     login_manager.init_app(app)
@@ -31,10 +35,6 @@ def create_app(config_name=None):
     @login_manager.user_loader
     def load_user(user_id):
         return User.query.get(int(user_id))
-
-    # Create database tables
-    with app.app_context():
-        db.create_all()
 
     # Add context processor to provide current datetime to all templates
     @app.context_processor
@@ -248,6 +248,9 @@ def register_routes(app):
             expense_str = request.form.get('expense', '0').strip()
             note1 = request.form.get('note1', '').strip()
             note2 = request.form.get('note2', '').strip()
+            note3 = request.form.get('note3', '').strip()
+            note4 = request.form.get('note4', '').strip()
+            note5 = request.form.get('note5', '').strip()
 
             # Validation
             if not date_str or not account_id:
@@ -295,6 +298,9 @@ def register_routes(app):
                 balance_after=balance_after,
                 note1=note1,
                 note2=note2,
+                note3=note3,
+                note4=note4,
+                note5=note5,
                 created_by=current_user.id
             )
             db.session.add(transaction)
@@ -309,7 +315,8 @@ def register_routes(app):
         # GET request - show form
         accounts = Account.query.order_by(Account.account_name).all()
         today = date.today().strftime('%Y-%m-%d')
-        return render_template('transaction_add.html', accounts=accounts, today=today)
+        note_options = NoteOption.get_all_options_dict()
+        return render_template('transaction_add.html', accounts=accounts, today=today, note_options=note_options)
 
     @app.route('/transactions')
     @login_required
@@ -346,7 +353,10 @@ def register_routes(app):
                 db.or_(
                     Transaction.summary.contains(keyword),
                     Transaction.note1.contains(keyword),
-                    Transaction.note2.contains(keyword)
+                    Transaction.note2.contains(keyword),
+                    Transaction.note3.contains(keyword),
+                    Transaction.note4.contains(keyword),
+                    Transaction.note5.contains(keyword)
                 )
             )
 
@@ -382,7 +392,10 @@ def register_routes(app):
             filter_condition = db.or_(
                 Transaction.summary.contains(keyword),
                 Transaction.note1.contains(keyword),
-                Transaction.note2.contains(keyword)
+                Transaction.note2.contains(keyword),
+                Transaction.note3.contains(keyword),
+                Transaction.note4.contains(keyword),
+                Transaction.note5.contains(keyword)
             )
             total_income = total_income.filter(filter_condition)
             total_expense = total_expense.filter(filter_condition)
@@ -400,11 +413,15 @@ def register_routes(app):
         accounts = Account.query.order_by(Account.account_name).all()
         account_map = {a.id: a.account_name for a in accounts}
 
+        # Get note options for display
+        note_options = NoteOption.get_all_options_dict()
+
         return render_template('transaction_list.html',
                                transactions=transactions,
                                pagination=pagination,
                                accounts=accounts,
                                account_map=account_map,
+                               note_options=note_options,
                                total_income=total_income,
                                total_expense=total_expense,
                                start_date=start_date_str,
@@ -431,6 +448,9 @@ def register_routes(app):
             expense_str = request.form.get('expense', '0').strip()
             note1 = request.form.get('note1', '').strip()
             note2 = request.form.get('note2', '').strip()
+            note3 = request.form.get('note3', '').strip()
+            note4 = request.form.get('note4', '').strip()
+            note5 = request.form.get('note5', '').strip()
 
             # Validation
             if not date_str or not account_id:
@@ -472,6 +492,9 @@ def register_routes(app):
             transaction.expense = expense
             transaction.note1 = note1
             transaction.note2 = note2
+            transaction.note3 = note3
+            transaction.note4 = note4
+            transaction.note5 = note5
             transaction.updated_at = datetime.utcnow()
 
             db.session.commit()
@@ -493,9 +516,11 @@ def register_routes(app):
 
         # GET request - show edit form
         accounts = Account.query.order_by(Account.account_name).all()
+        note_options = NoteOption.get_all_options_dict()
         return render_template('transaction_edit.html',
                                transaction=transaction,
-                               accounts=accounts)
+                               accounts=accounts,
+                               note_options=note_options)
 
     @app.route('/transaction/delete/<int:transaction_id>', methods=['POST'])
     @login_required
@@ -551,7 +576,10 @@ def register_routes(app):
                 db.or_(
                     Transaction.summary.contains(keyword),
                     Transaction.note1.contains(keyword),
-                    Transaction.note2.contains(keyword)
+                    Transaction.note2.contains(keyword),
+                    Transaction.note3.contains(keyword),
+                    Transaction.note4.contains(keyword),
+                    Transaction.note5.contains(keyword)
                 )
             )
 
@@ -631,8 +659,11 @@ def register_routes(app):
                         income=data['income'],
                         expense=data['expense'],
                         balance_after=balance_after,
-                        note1=data['note1'],
-                        note2=data['note2'],
+                        note1=data.get('note1', ''),
+                        note2=data.get('note2', ''),
+                        note3=data.get('note3', ''),
+                        note4=data.get('note4', ''),
+                        note5=data.get('note5', ''),
                         created_by=current_user.id
                     )
                     db.session.add(transaction)
@@ -666,6 +697,309 @@ def register_routes(app):
             as_attachment=True,
             download_name='transaction_import_template.xlsx'
         )
+
+    # ==================== Note Options Management Routes ====================
+
+    @app.route('/note-options')
+    @login_required
+    def note_options():
+        """Note options management page."""
+        # Group options by note field
+        options_by_field = {}
+        for field in ['note1', 'note2', 'note3', 'note4', 'note5']:
+            options_by_field[field] = NoteOption.query.filter_by(
+                note_field=field
+            ).order_by(NoteOption.sort_order, NoteOption.option_value).all()
+
+        return render_template('note_options.html', options_by_field=options_by_field)
+
+    @app.route('/note-options/add', methods=['POST'])
+    @login_required
+    def add_note_option():
+        """Add a new note option."""
+        note_field = request.form.get('note_field', '').strip()
+        option_value = request.form.get('option_value', '').strip()
+        sort_order_str = request.form.get('sort_order', '0')
+
+        if not note_field or not option_value:
+            flash('字段和选项值不能为空。', 'danger')
+            return redirect(url_for('note_options'))
+
+        # Check if note_field is valid
+        if note_field not in ['note1', 'note2', 'note3', 'note4', 'note5']:
+            flash('无效的备注字段。', 'danger')
+            return redirect(url_for('note_options'))
+
+        try:
+            sort_order = int(sort_order_str) if sort_order_str else 0
+        except ValueError:
+            sort_order = 0
+
+        # Check if option already exists
+        existing = NoteOption.query.filter_by(
+            note_field=note_field,
+            option_value=option_value
+        ).first()
+
+        if existing:
+            flash(f'选项 "{option_value}" 在 {note_field} 中已存在。', 'danger')
+            return redirect(url_for('note_options'))
+
+        option = NoteOption(
+            note_field=note_field,
+            option_value=option_value,
+            sort_order=sort_order,
+            created_by=current_user.id
+        )
+        db.session.add(option)
+        db.session.commit()
+
+        flash(f'选项 "{option_value}" 添加成功。', 'success')
+        return redirect(url_for('note_options'))
+
+    @app.route('/note-options/<int:option_id>/edit', methods=['POST'])
+    @login_required
+    def edit_note_option(option_id):
+        """Edit a note option."""
+        option = NoteOption.query.get_or_404(option_id)
+        new_value = request.form.get('option_value', '').strip()
+        sort_order_str = request.form.get('sort_order', '0')
+        is_active = request.form.get('is_active') == 'on'
+
+        if not new_value:
+            flash('选项值不能为空。', 'danger')
+            return redirect(url_for('note_options'))
+
+        try:
+            sort_order = int(sort_order_str) if sort_order_str else 0
+        except ValueError:
+            sort_order = 0
+
+        # Check if new value conflicts with another option
+        existing = NoteOption.query.filter_by(
+            note_field=option.note_field,
+            option_value=new_value
+        ).first()
+
+        if existing and existing.id != option_id:
+            flash(f'选项 "{new_value}" 已存在。', 'danger')
+            return redirect(url_for('note_options'))
+
+        option.option_value = new_value
+        option.sort_order = sort_order
+        option.is_active = is_active
+        db.session.commit()
+
+        flash(f'选项更新成功。', 'success')
+        return redirect(url_for('note_options'))
+
+    @app.route('/note-options/<int:option_id>/delete', methods=['POST'])
+    @login_required
+    def delete_note_option(option_id):
+        """Delete a note option."""
+        option = NoteOption.query.get_or_404(option_id)
+        db.session.delete(option)
+        db.session.commit()
+
+        flash(f'选项 "{option.option_value}" 已删除。', 'success')
+        return redirect(url_for('note_options'))
+
+    # ==================== Report Analysis Routes ====================
+
+    @app.route('/reports')
+    @login_required
+    def reports():
+        """Report analysis page."""
+        return render_template('reports.html')
+
+    @app.route('/reports/daily')
+    @login_required
+    def report_daily():
+        """Daily report analysis - show each account's status per date."""
+        # Get parameters
+        start_date_str = request.args.get('start_date', '')
+        end_date_str = request.args.get('end_date', '')
+
+        # Default to current month
+        if not start_date_str:
+            start_date_str = date.today().replace(day=1).strftime('%Y-%m-%d')
+        if not end_date_str:
+            end_date_str = date.today().strftime('%Y-%m-%d')
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = date.today().replace(day=1)
+            end_date = date.today()
+
+        # Get all accounts for the filter dropdown and display
+        all_accounts = Account.query.order_by(Account.account_name).all()
+        account_map = {a.id: a.account_name for a in all_accounts}
+
+        # Query daily data by account
+        query = db.session.query(
+            Transaction.date,
+            Transaction.account_id,
+            db.func.sum(Transaction.income).label('total_income'),
+            db.func.sum(Transaction.expense).label('total_expense')
+        ).filter(
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        ).group_by(Transaction.date, Transaction.account_id).order_by(Transaction.date, Transaction.account_id)
+
+        daily_data = query.all()
+
+        # Organize data by date, each date contains all accounts
+        dates_data = {}
+        for row in daily_data:
+            date_key = row.date.strftime('%Y-%m-%d')
+            if date_key not in dates_data:
+                dates_data[date_key] = {
+                    'date': row.date,
+                    'accounts': {},
+                    'total_income': 0,
+                    'total_expense': 0
+                }
+            dates_data[date_key]['accounts'][row.account_id] = {
+                'account_name': account_map.get(row.account_id, '未知'),
+                'income': row.total_income or 0,
+                'expense': row.total_expense or 0,
+                'net': (row.total_income or 0) - (row.total_expense or 0)
+            }
+            dates_data[date_key]['total_income'] += row.total_income or 0
+            dates_data[date_key]['total_expense'] += row.total_expense or 0
+
+        return render_template('report_daily.html',
+                               dates_data=dates_data,
+                               accounts=all_accounts,
+                               start_date=start_date_str,
+                               end_date=end_date_str)
+
+    @app.route('/reports/monthly')
+    @login_required
+    def report_monthly():
+        """Monthly report analysis - show all accounts per month."""
+        # Get parameters
+        year = request.args.get('year', date.today().year, type=int)
+
+        # Get all accounts for display
+        all_accounts = Account.query.order_by(Account.account_name).all()
+        account_map = {a.id: a.account_name for a in all_accounts}
+
+        # Query monthly data by account
+        query = db.session.query(
+            db.func.strftime('%Y-%m', Transaction.date).label('month'),
+            Transaction.account_id,
+            db.func.sum(Transaction.income).label('total_income'),
+            db.func.sum(Transaction.expense).label('total_expense')
+        ).filter(
+            db.func.strftime('%Y', Transaction.date) == str(year)
+        ).group_by('month', Transaction.account_id).order_by('month', Transaction.account_id)
+
+        monthly_data = query.all()
+
+        # Organize data by month, each month contains all accounts
+        months_data = {}
+        for row in monthly_data:
+            month_key = row.month
+            if month_key not in months_data:
+                months_data[month_key] = {
+                    'month': row.month,
+                    'accounts': {},
+                    'total_income': 0,
+                    'total_expense': 0
+                }
+            months_data[month_key]['accounts'][row.account_id] = {
+                'account_name': account_map.get(row.account_id, '未知'),
+                'income': row.total_income or 0,
+                'expense': row.total_expense or 0,
+                'net': (row.total_income or 0) - (row.total_expense or 0)
+            }
+            months_data[month_key]['total_income'] += row.total_income or 0
+            months_data[month_key]['total_expense'] += row.total_expense or 0
+
+        return render_template('report_monthly.html',
+                               months_data=months_data,
+                               accounts=all_accounts,
+                               year=year)
+
+    @app.route('/reports/by-note')
+    @login_required
+    def report_by_note():
+        """Report analysis by note fields."""
+        # Get parameters
+        start_date_str = request.args.get('start_date', '')
+        end_date_str = request.args.get('end_date', '')
+        note_field = request.args.get('note_field', 'note1')
+        period_type = request.args.get('period_type', 'daily')  # daily, monthly
+
+        # Default to current month
+        if not start_date_str:
+            start_date_str = date.today().replace(day=1).strftime('%Y-%m-%d')
+        if not end_date_str:
+            end_date_str = date.today().strftime('%Y-%m-%d')
+
+        try:
+            start_date = datetime.strptime(start_date_str, '%Y-%m-%d').date()
+            end_date = datetime.strptime(end_date_str, '%Y-%m-%d').date()
+        except ValueError:
+            start_date = date.today().replace(day=1)
+            end_date = date.today()
+
+        # Validate note field
+        if note_field not in ['note1', 'note2', 'note3', 'note4', 'note5']:
+            note_field = 'note1'
+
+        # Build query based on period type
+        if period_type == 'monthly':
+            query = db.session.query(
+                db.func.strftime('%Y-%m', Transaction.date).label('period'),
+                getattr(Transaction, note_field).label('note_value'),
+                db.func.sum(Transaction.income).label('total_income'),
+                db.func.sum(Transaction.expense).label('total_expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            )
+        else:
+            query = db.session.query(
+                Transaction.date.label('period'),
+                getattr(Transaction, note_field).label('note_value'),
+                db.func.sum(Transaction.income).label('total_income'),
+                db.func.sum(Transaction.expense).label('total_expense')
+            ).filter(
+                Transaction.date >= start_date,
+                Transaction.date <= end_date
+            )
+
+        # Group by period and note value
+        query = query.group_by('period', 'note_value').order_by('period', db.desc(db.func.sum(Transaction.income + Transaction.expense)))
+        report_data = query.all()
+
+        # Organize data by period
+        periods = {}
+        for row in report_data:
+            period_key = row.period
+            if period_key not in periods:
+                periods[period_key] = []
+            periods[period_key].append({
+                'note_value': row.note_value or '(空)',
+                'income': row.total_income or 0,
+                'expense': row.total_expense or 0,
+                'net': (row.total_income or 0) - (row.total_expense or 0)
+            })
+
+        # Get all note options for the selected field
+        note_options = NoteOption.get_options_for_field(note_field)
+
+        return render_template('report_by_note.html',
+                               periods=periods,
+                               note_field=note_field,
+                               note_options=note_options,
+                               period_type=period_type,
+                               start_date=start_date_str,
+                               end_date=end_date_str)
 
 
 def register_cli_commands(app):
