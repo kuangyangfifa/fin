@@ -1,0 +1,855 @@
+/* ============================================
+   财务管理系统 - 全局视觉重构样式
+   风格：清新、现代、适合女士使用
+   ============================================ */
+
+/* ------------------------------------------
+   1. CSS 变量定义 - 配色系统
+   ------------------------------------------ */
+:root {
+  /* 主色调 - 柔和蓝紫色系 */
+  --primary-color: #6366f1;
+  --primary-light: #818cf8;
+  --primary-dark: #4f46e5;
+  --primary-soft: rgba(99, 102, 241, 0.1);
+
+  /* 侧边栏 - 深紫蓝色 */
+  --sidebar-bg: #1e1b4b;
+  --sidebar-bg-gradient: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+  --sidebar-text: rgba(255, 255, 255, 0.85);
+  --sidebar-text-hover: #ffffff;
+  --sidebar-active: rgba(255, 255, 255, 0.15);
+
+  /* 背景色 */
+  --body-bg: #f8fafc;
+  --card-bg: #ffffff;
+  --surface-bg: #f1f5f9;
+
+  /* 文字色 */
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+
+  /* 功能色 - 柔和饱和度 */
+  --success: #10b981;
+  --success-soft: rgba(16, 185, 129, 0.1);
+  --success-light: #d1fae5;
+
+  --danger: #f43f5e;
+  --danger-soft: rgba(244, 63, 94, 0.1);
+  --danger-light: #ffe4e6;
+
+  --warning: #f59e0b;
+  --warning-soft: rgba(245, 158, 11, 0.1);
+  --warning-light: #fef3c7;
+
+  --info: #06b6d4;
+  --info-soft: rgba(6, 182, 212, 0.1);
+  --info-light: #cffafe;
+
+  /* 阴影系统 */
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
+
+  /* 圆角系统 */
+  --radius-sm: 8px;
+  --radius: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
+  --radius-xl: 24px;
+
+  /* 间距系统 */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+
+  /* 过渡动画 */
+  --transition-fast: 0.15s ease;
+  --transition: 0.3s ease;
+  --transition-slow: 0.5s ease;
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ------------------------------------------
+   2. 基础重置与字体
+   ------------------------------------------ */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--body-bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 美化滚动条 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+  opacity: 0.5;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--text-muted) transparent;
+}
+
+/* ------------------------------------------
+   3. 侧边栏样式重构
+   ------------------------------------------ */
+.sidebar {
+  width: 280px;
+  min-height: 100vh;
+  background: var(--sidebar-bg-gradient);
+  color: var(--sidebar-text);
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 1000;
+  transition: var(--transition);
+  box-shadow: var(--shadow-lg);
+}
+
+.sidebar-brand {
+  padding: var(--space-6) var(--space-6) var(--space-8);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sidebar-brand h4 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.sidebar-brand h4 i {
+  font-size: 1.5rem;
+  color: var(--primary-light);
+}
+
+.sidebar-brand small {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.75rem;
+  margin-top: var(--space-1);
+  display: block;
+  font-weight: 400;
+}
+
+/* 导航链接 */
+.nav-link {
+  color: var(--sidebar-text);
+  padding: var(--space-3) var(--space-6);
+  border-radius: 0;
+  transition: all var(--transition);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-weight: 500;
+  font-size: 0.9375rem;
+  position: relative;
+  margin: var(--space-1) var(--space-3);
+  border-radius: var(--radius-sm);
+}
+
+.nav-link i {
+  font-size: 1.25rem;
+  width: 1.5rem;
+  text-align: center;
+  transition: var(--transition);
+}
+
+.nav-link:hover {
+  color: var(--sidebar-text-hover);
+  background-color: rgba(255, 255, 255, 0.08);
+  transform: translateX(4px);
+}
+
+.nav-link:hover i {
+  color: var(--primary-light);
+}
+
+.nav-link.active {
+  color: #ffffff;
+  background-color: var(--sidebar-active);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+.nav-link.active i {
+  color: var(--primary-light);
+}
+
+.nav-link.active::before {
+  content: '';
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 4px;
+  height: 60%;
+  background: var(--primary-light);
+  border-radius: 0 4px 4px 0;
+}
+
+/* 底部用户信息 */
+.sidebar-footer {
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.sidebar-footer .user-info {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  color: var(--sidebar-text);
+  font-size: 0.875rem;
+}
+
+.sidebar-footer .user-info i {
+  font-size: 1.5rem;
+  color: var(--primary-light);
+}
+
+.sidebar-footer .btn {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: var(--sidebar-text);
+  transition: var(--transition);
+}
+
+.sidebar-footer .btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* ------------------------------------------
+   4. 主内容区域
+   ------------------------------------------ */
+.main-content {
+  margin-left: 280px;
+  padding: var(--space-8);
+  min-height: 100vh;
+  background-color: var(--body-bg);
+}
+
+/* 顶部导航栏 */
+.navbar-top {
+  background-color: var(--card-bg);
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-6);
+  margin: 0 0 var(--space-6) 0;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.navbar-top .breadcrumb {
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.navbar-top .breadcrumb-item a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: var(--transition);
+}
+
+.navbar-top .breadcrumb-item a:hover {
+  color: var(--primary-color);
+}
+
+.navbar-top .breadcrumb-item.active {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.navbar-top .current-date {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* ------------------------------------------
+   5. 卡片（Card）样式重构
+   ------------------------------------------ */
+.card {
+  border: none;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  background-color: var(--card-bg);
+  transition: var(--transition);
+  overflow: hidden;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.card-header {
+  background-color: transparent;
+  border-bottom: 1px solid var(--surface-bg);
+  padding: var(--space-5) var(--space-6);
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.card-header i {
+  color: var(--primary-color);
+  font-size: 1.125rem;
+}
+
+.card-body {
+  padding: var(--space-6);
+}
+
+.card-footer {
+  background-color: transparent;
+  border-top: 1px solid var(--surface-bg);
+  padding: var(--space-4) var(--space-6);
+}
+
+/* 统计卡片 - 带左侧彩色边框 */
+.stat-card {
+  border-left: 4px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.stat-card.primary {
+  border-left-color: var(--primary-color);
+}
+
+.stat-card.primary::before {
+  background: linear-gradient(135deg, var(--primary-color) 0%, transparent 100%);
+}
+
+.stat-card.success {
+  border-left-color: var(--success);
+}
+
+.stat-card.success::before {
+  background: linear-gradient(135deg, var(--success) 0%, transparent 100%);
+}
+
+.stat-card.danger {
+  border-left-color: var(--danger);
+}
+
+.stat-card.danger::before {
+  background: linear-gradient(135deg, var(--danger) 0%, transparent 100%);
+}
+
+.stat-card.warning {
+  border-left-color: var(--warning);
+}
+
+.stat-card.warning::before {
+  background: linear-gradient(135deg, var(--warning) 0%, transparent 100%);
+}
+
+.stat-card.info {
+  border-left-color: var(--info);
+}
+
+.stat-card.info::before {
+  background: linear-gradient(135deg, var(--info) 0%, transparent 100%);
+}
+
+.stat-card .card-body {
+  padding: var(--space-6);
+}
+
+.stat-card h6 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: var(--space-2);
+}
+
+.stat-card h3 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+/* ------------------------------------------
+   6. 表格（Table）样式优化
+   ------------------------------------------ */
+.table {
+  margin: 0;
+  font-size: 0.9375rem;
+}
+
+.table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  background-color: var(--surface-bg);
+  border: none;
+  padding: var(--space-4) var(--space-4);
+  font-size: 0.8125rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.table td {
+  padding: var(--space-4) var(--space-4);
+  border: none;
+  border-bottom: 1px solid var(--surface-bg);
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+
+.table tbody tr {
+  transition: var(--transition);
+}
+
+.table tbody tr:hover {
+  background-color: var(--surface-bg);
+}
+
+.table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* 表格中的金额 */
+.table .amount-positive {
+  color: var(--success);
+  font-weight: 600;
+}
+
+.table .amount-negative {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+/* ------------------------------------------
+   7. 按钮（Button）样式
+   ------------------------------------------ */
+.btn {
+  font-weight: 500;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  font-size: 0.9375rem;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  border: none;
+}
+
+.btn i {
+  font-size: 1rem;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow);
+}
+
+.btn:active {
+  transform: translateY(0);
+}
+
+/* 主按钮 */
+.btn-primary {
+  background-color: var(--primary-color);
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--primary-dark);
+  box-shadow: 0 8px 12px -2px rgba(99, 102, 241, 0.3);
+}
+
+/* 成功按钮 */
+.btn-success {
+  background-color: var(--success);
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
+}
+
+.btn-success:hover {
+  background-color: #059669;
+  box-shadow: 0 8px 12px -2px rgba(16, 185, 129, 0.3);
+}
+
+/* 危险按钮 */
+.btn-danger {
+  background-color: var(--danger);
+  box-shadow: 0 4px 6px -1px rgba(244, 63, 94, 0.2);
+}
+
+.btn-danger:hover {
+  background-color: #e11d48;
+  box-shadow: 0 8px 12px -2px rgba(244, 63, 94, 0.3);
+}
+
+/* 轮廓按钮 */
+.btn-outline-primary {
+  border: 1px solid var(--primary-color);
+  color: var(--primary-color);
+  background: transparent;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.btn-outline-secondary {
+  border: 1px solid var(--text-muted);
+  color: var(--text-secondary);
+  background: transparent;
+}
+
+.btn-outline-secondary:hover {
+  background-color: var(--surface-bg);
+  color: var(--text-primary);
+}
+
+/* 小按钮 */
+.btn-sm {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.875rem;
+  border-radius: var(--radius-sm);
+}
+
+.btn-action {
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.8125rem;
+}
+
+/* ------------------------------------------
+   8. 表单（Form）样式
+   ------------------------------------------ */
+.form-label {
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.form-control,
+.form-select {
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  font-size: 0.9375rem;
+  transition: var(--transition);
+  background-color: var(--card-bg);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--primary-light);
+  box-shadow: 0 0 0 3px var(--primary-soft);
+  outline: none;
+}
+
+.form-control::placeholder {
+  color: var(--text-muted);
+}
+
+.input-group-text {
+  background-color: var(--surface-bg);
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* ------------------------------------------
+   9. 提示消息（Alert/Flash）
+   ------------------------------------------ */
+.alert {
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--space-4) var(--space-5);
+  font-size: 0.9375rem;
+  box-shadow: var(--shadow);
+}
+
+.alert-success {
+  background-color: var(--success-light);
+  color: #065f46;
+}
+
+.alert-danger {
+  background-color: var(--danger-light);
+  color: #9f1239;
+}
+
+.alert-warning {
+  background-color: var(--warning-light);
+  color: #92400e;
+}
+
+.alert-info {
+  background-color: var(--info-light);
+  color: #155e75;
+}
+
+.flash-messages {
+  position: fixed;
+  top: var(--space-6);
+  right: var(--space-6);
+  z-index: 1050;
+  min-width: 350px;
+  max-width: 450px;
+}
+
+.flash-messages .alert {
+  margin-bottom: var(--space-3);
+  animation: slideIn 0.3s ease;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ------------------------------------------
+   10. 分页（Pagination）
+   ------------------------------------------ */
+.pagination {
+  gap: var(--space-2);
+}
+
+.page-link {
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-4);
+  color: var(--text-secondary);
+  font-weight: 500;
+  transition: var(--transition);
+  min-width: 40px;
+  text-align: center;
+}
+
+.page-link:hover {
+  background-color: var(--surface-bg);
+  color: var(--primary-color);
+}
+
+.page-item.active .page-link {
+  background-color: var(--primary-color);
+  color: white;
+  box-shadow: 0 4px 6px -1px rgba(99, 102, 241, 0.3);
+}
+
+.page-item.disabled .page-link {
+  color: var(--text-muted);
+  background: transparent;
+}
+
+/* ------------------------------------------
+   11. 模态框（Modal）
+   ------------------------------------------ */
+.modal-content {
+  border: none;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--surface-bg);
+  padding: var(--space-5) var(--space-6);
+}
+
+.modal-body {
+  padding: var(--space-6);
+}
+
+.modal-footer {
+  border-top: 1px solid var(--surface-bg);
+  padding: var(--space-4) var(--space-6);
+}
+
+/* ------------------------------------------
+   12. 列表组（List Group）
+   ------------------------------------------ */
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid var(--surface-bg);
+  padding: var(--space-4) var(--space-5);
+  transition: var(--transition);
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
+
+.list-group-item:hover {
+  background-color: var(--surface-bg);
+}
+
+/* ------------------------------------------
+   13. 移动端适配
+   ------------------------------------------ */
+@media (max-width: 991.98px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 300px;
+  }
+
+  .sidebar.show {
+    transform: translateX(0);
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: var(--space-4);
+  }
+
+  .navbar-top {
+    margin-bottom: var(--space-4);
+  }
+
+  .flash-messages {
+    left: var(--space-4);
+    right: var(--space-4);
+    min-width: auto;
+  }
+}
+
+/* ------------------------------------------
+   14. 打印样式
+   ------------------------------------------ */
+@media print {
+  .sidebar,
+  .navbar-top,
+  .btn {
+    display: none !important;
+  }
+
+  .main-content {
+    margin-left: 0;
+    padding: 0;
+  }
+
+  .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}
+
+/* ------------------------------------------
+   15. 辅助类
+   ------------------------------------------ */
+.text-success {
+  color: var(--success) !important;
+}
+
+.text-danger {
+  color: var(--danger) !important;
+}
+
+.text-warning {
+  color: var(--warning) !important;
+}
+
+.text-info {
+  color: var(--info) !important;
+}
+
+.text-muted {
+  color: var(--text-muted) !important;
+}
+
+.bg-success {
+  background-color: var(--success-soft) !important;
+}
+
+.bg-danger {
+  background-color: var(--danger-soft) !important;
+}
+
+.bg-warning {
+  background-color: var(--warning-soft) !important;
+}
+
+.bg-info {
+  background-color: var(--info-soft) !important;
+}
+
+/* 图标按钮 */
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+/* 徽章 */
+.badge {
+  font-weight: 500;
+  padding: var(--space-1) var(--space-2);
+  border-radius: 6px;
+}
+
+/* 分隔线 */
+hr {
+  border-color: var(--surface-bg);
+  opacity: 1;
+}
