@@ -7,7 +7,7 @@ from flask_migrate import Migrate
 from werkzeug.utils import secure_filename
 
 from config import config
-from models import db, User, Account, Transaction, NoteOption
+from models import db, User, Account, Transaction, NoteOption, Note1Option
 from utils.excel_handler import export_transactions_to_excel, create_import_template, parse_excel_import
 
 # Initialize Flask app
@@ -330,7 +330,9 @@ def register_routes(app):
         accounts = Account.query.order_by(Account.account_name).all()
         today = date.today().strftime('%Y-%m-%d')
         note_options = NoteOption.get_all_options_dict()
-        return render_template('transaction_add.html', accounts=accounts, today=today, note_options=note_options)
+        note1_options = Note1Option.get_all_options_dict()
+        return render_template('transaction_add.html', accounts=accounts, today=today,
+                               note_options=note_options, note1_options=note1_options)
 
     @app.route('/transactions')
     @login_required
@@ -531,10 +533,25 @@ def register_routes(app):
         # GET request - show edit form
         accounts = Account.query.order_by(Account.account_name).all()
         note_options = NoteOption.get_all_options_dict()
+        note1_options = Note1Option.get_all_options_dict()
+
+        # Parse note1 to extract parent and child if it follows "parent-child" format
+        note1_parent = ''
+        note1_child = transaction.note1 or ''
+        for parent in note1_options.keys():
+            prefix = parent + '-'
+            if transaction.note1 and transaction.note1.startswith(prefix):
+                note1_parent = parent
+                note1_child = transaction.note1[len(prefix):]
+                break
+
         return render_template('transaction_edit.html',
                                transaction=transaction,
                                accounts=accounts,
-                               note_options=note_options)
+                               note_options=note_options,
+                               note1_options=note1_options,
+                               note1_parent=note1_parent,
+                               note1_child=note1_child)
 
     @app.route('/transaction/delete/<int:transaction_id>', methods=['POST'])
     @login_required
@@ -714,23 +731,35 @@ def register_routes(app):
 
     # ==================== Note Options Management Routes ====================
 
+
+    # ==================== Note Options Management Routes ====================
+
     @app.route('/note-options')
     @login_required
     def note_options():
         """Note options management page."""
-        # Group options by note field
+        # Group options by note field (note2-5)
         options_by_field = {}
-        for field in ['note1', 'note2', 'note3', 'note4', 'note5']:
+        for field in ['note2', 'note3', 'note4', 'note5']:
             options_by_field[field] = NoteOption.query.filter_by(
                 note_field=field
             ).order_by(NoteOption.sort_order, NoteOption.option_value).all()
 
-        return render_template('note_options.html', options_by_field=options_by_field)
+        # Get note1 hierarchical options
+        note1_parents = Note1Option.get_all_parents()
+        note1_options = {}
+        for parent in note1_parents:
+            children = Note1Option.get_children_by_parent(parent)
+            note1_options[parent] = children
+
+        return render_template('note_options.html',
+                               options_by_field=options_by_field,
+                               note1_options=note1_options)
 
     @app.route('/note-options/add', methods=['POST'])
     @login_required
     def add_note_option():
-        """Add a new note option."""
+        """Add a new note option for note2-5."""
         note_field = request.form.get('note_field', '').strip()
         option_value = request.form.get('option_value', '').strip()
         sort_order_str = request.form.get('sort_order', '0')
@@ -739,8 +768,8 @@ def register_routes(app):
             flash('字段和选项值不能为空。', 'danger')
             return redirect(url_for('note_options'))
 
-        # Check if note_field is valid
-        if note_field not in ['note1', 'note2', 'note3', 'note4', 'note5']:
+        # Check if note_field is valid (note1 is handled separately)
+        if note_field not in ['note2', 'note3', 'note4', 'note5']:
             flash('无效的备注字段。', 'danger')
             return redirect(url_for('note_options'))
 
@@ -816,6 +845,96 @@ def register_routes(app):
         db.session.commit()
 
         flash(f'选项 "{option.option_value}" 已删除。', 'success')
+        return redirect(url_for('note_options'))
+
+    # ==================== Note1 (Two-level) Options Routes ====================
+
+    @app.route('/note1-options/add', methods=['POST'])
+    @login_required
+    def add_note1_option():
+        """Add a new note1 option (two-level hierarchy)."""
+        parent_value = request.form.get('parent_value', '').strip()
+        child_value = request.form.get('child_value', '').strip()
+        sort_order_str = request.form.get('sort_order', '0')
+
+        if not parent_value or not child_value:
+            flash('一级选项和二级选项都不能为空。', 'danger')
+            return redirect(url_for('note_options'))
+
+        try:
+            sort_order = int(sort_order_str) if sort_order_str else 0
+        except ValueError:
+            sort_order = 0
+
+        # Check if option already exists
+        existing = Note1Option.query.filter_by(
+            parent_value=parent_value,
+            child_value=child_value
+        ).first()
+
+        if existing:
+            flash(f'选项 "{parent_value}-{child_value}" 已存在。', 'danger')
+            return redirect(url_for('note_options'))
+
+        option = Note1Option(
+            parent_value=parent_value,
+            child_value=child_value,
+            sort_order=sort_order,
+            created_by=current_user.id
+        )
+        db.session.add(option)
+        db.session.commit()
+
+        flash(f'选项 "{parent_value}-{child_value}" 添加成功。', 'success')
+        return redirect(url_for('note_options'))
+
+    @app.route('/note1-options/<int:option_id>/edit', methods=['POST'])
+    @login_required
+    def edit_note1_option(option_id):
+        """Edit a note1 option."""
+        option = Note1Option.query.get_or_404(option_id)
+        parent_value = request.form.get('parent_value', '').strip()
+        child_value = request.form.get('child_value', '').strip()
+        sort_order_str = request.form.get('sort_order', '0')
+        is_active = request.form.get('is_active') == 'on'
+
+        if not parent_value or not child_value:
+            flash('一级选项和二级选项都不能为空。', 'danger')
+            return redirect(url_for('note_options'))
+
+        try:
+            sort_order = int(sort_order_str) if sort_order_str else 0
+        except ValueError:
+            sort_order = 0
+
+        # Check if new values conflict with another option
+        existing = Note1Option.query.filter_by(
+            parent_value=parent_value,
+            child_value=child_value
+        ).first()
+
+        if existing and existing.id != option_id:
+            flash(f'选项 "{parent_value}-{child_value}" 已存在。', 'danger')
+            return redirect(url_for('note_options'))
+
+        option.parent_value = parent_value
+        option.child_value = child_value
+        option.sort_order = sort_order
+        option.is_active = is_active
+        db.session.commit()
+
+        flash(f'选项更新成功。', 'success')
+        return redirect(url_for('note_options'))
+
+    @app.route('/note1-options/<int:option_id>/delete', methods=['POST'])
+    @login_required
+    def delete_note1_option(option_id):
+        """Delete a note1 option."""
+        option = Note1Option.query.get_or_404(option_id)
+        db.session.delete(option)
+        db.session.commit()
+
+        flash(f'选项 "{option.parent_value}-{option.child_value}" 已删除。', 'success')
         return redirect(url_for('note_options'))
 
     # ==================== Report Analysis Routes ====================

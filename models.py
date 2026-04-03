@@ -63,7 +63,7 @@ class NoteOption(db.Model):
     __tablename__ = 'note_options'
 
     id = db.Column(db.Integer, primary_key=True)
-    note_field = db.Column(db.String(10), nullable=False, index=True)  # 'note1', 'note2', etc.
+    note_field = db.Column(db.String(10), nullable=False, index=True)  # 'note2', 'note3', 'note4', 'note5'
     option_value = db.Column(db.String(200), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
     is_active = db.Column(db.Boolean, default=True)
@@ -89,9 +89,65 @@ class NoteOption(db.Model):
     def get_all_options_dict():
         """Get all options as a dictionary grouped by note field."""
         options = {}
-        for field in ['note1', 'note2', 'note3', 'note4', 'note5']:
+        for field in ['note2', 'note3', 'note4', 'note5']:
             options[field] = NoteOption.get_options_for_field(field)
         return options
+
+
+class Note1Option(db.Model):
+    """Note1 options model with two-level hierarchy (like province-city)."""
+    __tablename__ = 'note1_options'
+
+    id = db.Column(db.Integer, primary_key=True)
+    parent_value = db.Column(db.String(200), nullable=False, index=True)  # 一级选项
+    child_value = db.Column(db.String(200), nullable=False)  # 二级选项
+    sort_order = db.Column(db.Integer, default=0)
+    is_active = db.Column(db.Boolean, default=True)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        db.UniqueConstraint('parent_value', 'child_value', name='unique_note1_option'),
+    )
+
+    def __repr__(self):
+        return f'<Note1Option {self.parent_value}:{self.child_value}>'
+
+    @staticmethod
+    def get_all_parents():
+        """Get all unique parent values."""
+        parents = db.session.query(Note1Option.parent_value).filter_by(
+            is_active=True
+        ).distinct().order_by(Note1Option.parent_value).all()
+        return [p[0] for p in parents]
+
+    @staticmethod
+    def get_children_by_parent(parent_value):
+        """Get all children for a specific parent."""
+        return Note1Option.query.filter_by(
+            parent_value=parent_value,
+            is_active=True
+        ).order_by(Note1Option.sort_order, Note1Option.child_value).all()
+
+    @staticmethod
+    def get_all_options_dict():
+        """Get all options as a nested dictionary."""
+        result = {}
+        parents = Note1Option.get_all_parents()
+        for parent in parents:
+            children = Note1Option.get_children_by_parent(parent)
+            result[parent] = [c.child_value for c in children]
+        return result
+
+    @staticmethod
+    def get_flat_options():
+        """Get all options as flat list with full path."""
+        options = Note1Option.query.filter_by(is_active=True).order_by(
+            Note1Option.parent_value,
+            Note1Option.sort_order,
+            Note1Option.child_value
+        ).all()
+        return [f"{opt.parent_value}-{opt.child_value}" for opt in options]
 
 
 class Transaction(db.Model):

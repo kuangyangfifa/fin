@@ -68,59 +68,67 @@
                                 </div>
                             </div>
 
-                            <!-- Note 1 -->
+                            <!-- Note 1 (Two-Level) -->
                             <div class="col-md-6">
                                 <label for="note1" class="form-label">备注1</label>
-                                <select class="form-select" id="note1" name="note1">
-                                    <option value="">-- 请选择 --</option>
-                                    {% for option in note_options.note1 %}
-                                    <option value="{{ option.option_value }}">{{ option.option_value }}</option>
+                                <div class="input-group">
+                                    <select class="form-select" id="note1_parent" style="max-width: 40%;" onchange="updateNote1Children()">
+                                        <option value="">-- 一级 --</option>
+                                        {% for parent in note1_options.keys() %}
+                                        <option value="{{ parent }}">{{ parent }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <input type="text" class="form-control" id="note1" name="note1" list="note1-children" placeholder="输入或选择二级..." autocomplete="off">
+                                </div>
+                                <datalist id="note1-children">
+                                    <!-- Will be populated by JavaScript -->
+                                </datalist>
+                                <datalist id="note1-all-options">
+                                    {% for parent, children in note1_options.items() %}
+                                    {% for child in children %}
+                                    <option value="{{ parent }}-{{ child }}">
                                     {% endfor %}
-                                </select>
+                                    {% endfor %}
+                                </datalist>
                             </div>
 
                             <!-- Note 2 -->
                             <div class="col-md-6">
                                 <label for="note2" class="form-label">备注2</label>
-                                <select class="form-select" id="note2" name="note2">
-                                    <option value="">-- 请选择 --</option>
+                                <input type="text" class="form-control" id="note2" name="note2" list="note2-list" placeholder="输入或选择..." autocomplete="off">
+                                <datalist id="note2-list">
                                     {% for option in note_options.note2 %}
-                                    <option value="{{ option.option_value }}">{{ option.option_value }}</option>
+                                    <option value="{{ option.option_value }}">
                                     {% endfor %}
-                                </select>
+                                </datalist>
                             </div>
 
                             <!-- Note 3 -->
                             <div class="col-md-6">
                                 <label for="note3" class="form-label">备注3</label>
-                                <select class="form-select" id="note3" name="note3">
-                                    <option value="">-- 请选择 --</option>
+                                <input type="text" class="form-control" id="note3" name="note3" list="note3-list" placeholder="输入或选择..." autocomplete="off">
+                                <datalist id="note3-list">
                                     {% for option in note_options.note3 %}
-                                    <option value="{{ option.option_value }}">{{ option.option_value }}</option>
+                                    <option value="{{ option.option_value }}">
                                     {% endfor %}
-                                </select>
+                                </datalist>
                             </div>
 
                             <!-- Note 4 -->
                             <div class="col-md-6">
                                 <label for="note4" class="form-label">备注4</label>
-                                <select class="form-select" id="note4" name="note4">
-                                    <option value="">-- 请选择 --</option>
+                                <input type="text" class="form-control" id="note4" name="note4" list="note4-list" placeholder="输入或选择..." autocomplete="off">
+                                <datalist id="note4-list">
                                     {% for option in note_options.note4 %}
-                                    <option value="{{ option.option_value }}">{{ option.option_value }}</option>
+                                    <option value="{{ option.option_value }}">
                                     {% endfor %}
-                                </select>
+                                </datalist>
                             </div>
 
                             <!-- Note 5 -->
                             <div class="col-md-6">
                                 <label for="note5" class="form-label">备注5</label>
-                                <select class="form-select" id="note5" name="note5">
-                                    <option value="">-- 请选择 --</option>
-                                    {% for option in note_options.note5 %}
-                                    <option value="{{ option.option_value }}">{{ option.option_value }}</option>
-                                    {% endfor %}
-                                </select>
+                                <input type="text" class="form-control" id="note5" name="note5" maxlength="200" placeholder="请输入备注内容">
                             </div>
                         </div>
 
@@ -166,6 +174,48 @@
 
 {% block extra_js %}
 <script>
+    // Note1 options data for two-level selection
+    const note1Options = {{ note1_options|tojson }};
+
+    function updateNote1Children() {
+        const parentSelect = document.getElementById('note1_parent');
+        const childDatalist = document.getElementById('note1-children');
+        const childInput = document.getElementById('note1');
+        const selectedParent = parentSelect.value;
+
+        // Clear existing options
+        childDatalist.innerHTML = '';
+        childInput.value = '';
+
+        if (selectedParent && note1Options[selectedParent]) {
+            // Add children for selected parent
+            note1Options[selectedParent].forEach(function(child) {
+                const option = document.createElement('option');
+                option.value = child;
+                childDatalist.appendChild(option);
+            });
+        }
+    }
+
+    // Smart input handler for note1 - allows typing "parent-child" to auto-select
+    document.getElementById('note1').addEventListener('input', function() {
+        const value = this.value.trim();
+        const parentSelect = document.getElementById('note1_parent');
+
+        // Check if input matches "parent-child" format
+        for (const parent in note1Options) {
+            if (value.startsWith(parent + '-')) {
+                const child = value.substring(parent.length + 1);
+                if (note1Options[parent].includes(child)) {
+                    parentSelect.value = parent;
+                    updateNote1Children();
+                    this.value = child;
+                    break;
+                }
+            }
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         const incomeInput = document.getElementById('income');
         const expenseInput = document.getElementById('expense');
@@ -193,6 +243,13 @@
                 e.preventDefault();
                 alert('收入和支出不能同时为0，请至少填写一项。');
                 return false;
+            }
+
+            // Combine parent and child for note1 if parent is selected
+            const note1Parent = document.getElementById('note1_parent').value;
+            const note1Child = document.getElementById('note1').value.trim();
+            if (note1Parent && note1Child && !note1Child.startsWith(note1Parent + '-')) {
+                document.getElementById('note1').value = note1Parent + '-' + note1Child;
             }
         });
     });

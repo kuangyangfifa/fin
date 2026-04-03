@@ -11,17 +11,87 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">备注选项管理</h4>
-        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addOptionModal">
-            <i class="bi bi-plus-circle"></i> 添加选项
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNote1OptionModal">
+            <i class="bi bi-plus-circle"></i> 添加备注1选项
         </button>
     </div>
 
+    <!-- Note1 Two-Level Options -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-tags"></i> 备注1（二级联动选项）</span>
+                    <span class="badge bg-primary">{{ note1_options|length }} 个一级选项</span>
+                </div>
+                <div class="card-body">
+                    {% if note1_options %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th style="width: 30%;">一级选项</th>
+                                    <th style="width: 50%;">二级选项</th>
+                                    <th class="text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for parent, children in note1_options.items() %}
+                                {% for child in children %}
+                                <tr>
+                                    {% if loop.first %}
+                                    <td rowspan="{{ children|length }}" class="align-middle fw-bold bg-light">
+                                        {{ parent }}
+                                    </td>
+                                    {% endif %}
+                                    <td>
+                                        <span class="{% if not child.is_active %}text-decoration-line-through text-muted{% endif %}">
+                                            {{ child.child_value }}
+                                        </span>
+                                        {% if not child.is_active %}
+                                        <span class="badge bg-secondary ms-2">已禁用</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editNote1Modal{{ child.id }}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteNote1Modal{{ child.id }}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4 text-muted">
+                        <i class="bi bi-tags" style="font-size: 2rem;"></i>
+                        <p class="mb-0 mt-2">暂无备注1选项</p>
+                        <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#addNote1OptionModal">
+                            <i class="bi bi-plus-circle"></i> 添加第一个选项
+                        </button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Note2-5 Options -->
     <div class="row">
+        <div class="col-12">
+            <h5 class="mb-3">备注2-5（普通选项）</h5>
+        </div>
         {% for field_name, options in options_by_field.items() %}
-        <div class="col-md-6 col-lg-4 mb-4">
+        <div class="col-md-6 col-lg-3 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-tag"></i> 备注{{ loop.index }}</span>
+                    <span><i class="bi bi-tag"></i> 备注{{ loop.index + 1 }}</span>
                     <span class="badge bg-secondary">{{ options|length }} 个选项</span>
                 </div>
                 <div class="card-body p-0">
@@ -55,40 +125,44 @@
                     </div>
                     {% endif %}
                 </div>
+                <div class="card-footer">
+                    <button class="btn btn-sm btn-outline-primary w-100" data-bs-toggle="modal" data-bs-target="#addOptionModal{{ field_name }}">
+                        <i class="bi bi-plus-circle"></i> 添加选项
+                    </button>
+                </div>
             </div>
         </div>
         {% endfor %}
     </div>
 </div>
 
-<!-- Add Option Modal -->
-<div class="modal fade" id="addOptionModal" tabindex="-1">
+<!-- Add Note1 Option Modal (Two-Level) -->
+<div class="modal fade" id="addNote1OptionModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="POST" action="{{ url_for('add_note_option') }}">
+            <form method="POST" action="{{ url_for('add_note1_option') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">添加备注选项</h5>
+                    <h5 class="modal-title">添加备注1选项（二级联动）</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="note_field" class="form-label">备注字段 <span class="text-danger">*</span></label>
-                        <select class="form-select" id="note_field" name="note_field" required>
-                            <option value="">请选择</option>
-                            <option value="note1">备注1</option>
-                            <option value="note2">备注2</option>
-                            <option value="note3">备注3</option>
-                            <option value="note4">备注4</option>
-                            <option value="note5">备注5</option>
-                        </select>
+                        <label for="parent_value" class="form-label">一级选项 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="parent_value" name="parent_value" list="existing-parents" required maxlength="200" placeholder="输入或选择一级选项">
+                        <datalist id="existing-parents">
+                            {% for parent in note1_options.keys() %}
+                            <option value="{{ parent }}">
+                            {% endfor %}
+                        </datalist>
+                        <div class="form-text">可输入现有的一级选项或创建新的一级选项</div>
                     </div>
                     <div class="mb-3">
-                        <label for="option_value" class="form-label">选项值 <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="option_value" name="option_value" required maxlength="200">
+                        <label for="child_value" class="form-label">二级选项 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="child_value" name="child_value" required maxlength="200" placeholder="输入二级选项">
                     </div>
                     <div class="mb-3">
-                        <label for="sort_order" class="form-label">排序</label>
-                        <input type="number" class="form-control" id="sort_order" name="sort_order" value="0" min="0">
+                        <label for="note1_sort_order" class="form-label">排序</label>
+                        <input type="number" class="form-control" id="note1_sort_order" name="sort_order" value="0" min="0">
                         <div class="form-text">数字越小排序越靠前</div>
                     </div>
                 </div>
@@ -101,7 +175,39 @@
     </div>
 </div>
 
-<!-- Edit Modals -->
+<!-- Add Option Modals for Note2-5 -->
+{% for field_name in ['note2', 'note3', 'note4', 'note5'] %}
+<div class="modal fade" id="addOptionModal{{ field_name }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('add_note_option') }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">添加备注{{ loop.index + 1 }}选项</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" name="note_field" value="{{ field_name }}">
+                    <div class="mb-3">
+                        <label for="option_value_{{ field_name }}" class="form-label">选项值 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="option_value_{{ field_name }}" name="option_value" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label for="sort_order_{{ field_name }}" class="form-label">排序</label>
+                        <input type="number" class="form-control" id="sort_order_{{ field_name }}" name="sort_order" value="0" min="0">
+                        <div class="form-text">数字越小排序越靠前</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">添加</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Edit Modals for Note2-5 -->
 {% for field_name, options in options_by_field.items() %}
 {% for option in options %}
 <div class="modal fade" id="editModal{{ option.id }}" tabindex="-1">
@@ -150,6 +256,70 @@
                 </div>
                 <div class="modal-body">
                     <p>您确定要删除选项 <strong>"{{ option.option_value }}"</strong> 吗？</p>
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 此操作不可恢复！
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-danger">确认删除</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endfor %}
+
+<!-- Edit Modals for Note1 -->
+{% for parent, children in note1_options.items() %}
+{% for child in children %}
+<div class="modal fade" id="editNote1Modal{{ child.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('edit_note1_option', option_id=child.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title">编辑备注1选项</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="edit_parent_{{ child.id }}" class="form-label">一级选项 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_parent_{{ child.id }}" name="parent_value" value="{{ child.parent_value }}" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_child_{{ child.id }}" class="form-label">二级选项 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_child_{{ child.id }}" name="child_value" value="{{ child.child_value }}" required maxlength="200">
+                    </div>
+                    <div class="mb-3">
+                        <label for="edit_sort_{{ child.id }}" class="form-label">排序</label>
+                        <input type="number" class="form-control" id="edit_sort_{{ child.id }}" name="sort_order" value="{{ child.sort_order }}" min="0">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" class="form-check-input" id="edit_active_{{ child.id }}" name="is_active" {% if child.is_active %}checked{% endif %}>
+                        <label class="form-check-label" for="edit_active_{{ child.id }}">启用</label>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="submit" class="btn btn-primary">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteNote1Modal{{ child.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="POST" action="{{ url_for('delete_note1_option', option_id=child.id) }}">
+                <div class="modal-header">
+                    <h5 class="modal-title text-danger">确认删除</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>您确定要删除选项 <strong>"{{ child.parent_value }}-{{ child.child_value }}"</strong> 吗？</p>
                     <div class="alert alert-warning">
                         <i class="bi bi-exclamation-triangle"></i> 此操作不可恢复！
                     </div>
