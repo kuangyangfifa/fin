@@ -9,34 +9,34 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">编辑流水</h4>
-        <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
-            <i class="bi bi-arrow-left"></i> 返回列表
-        </a>
-    </div>
-
     <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card">
-                <div class="card-header">
-                    <i class="bi bi-pencil-square"></i> 编辑流水记录 #{{ transaction.id }}
+        <div class="col-lg-10 col-xl-8">
+            <div class="form-card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0 py-3">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-primary bg-opacity-10 p-2 rounded me-3">
+                            <i class="bi bi-pencil-square text-primary fs-4"></i>
+                        </div>
+                        <h5 class="mb-0">编辑流水记录 #{{ transaction.id }}</h5>
+                    </div>
                 </div>
-                <div class="card-body">
-                    <form method="POST" action="{{ url_for('edit_transaction', transaction_id=transaction.id) }}">
-                        <div class="row g-3">
-                            <!-- Date -->
+                <div class="card-body px-4 pb-4">
+                    <form method="POST" action="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" id="transactionForm">
+                        <div class="row g-4">
+                            <!-- Basic Info Section -->
+                            <div class="col-12">
+                                <h6 class="text-primary border-start border-primary border-4 ps-2 mb-3">基本信息</h6>
+                            </div>
+                            
                             <div class="col-md-6">
-                                <label for="date" class="form-label">日期 <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control" id="date" name="date"
+                                <label for="date" class="form-label small fw-bold">日期 <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control form-control-lg" id="date" name="date" 
                                        value="{{ transaction.date.strftime('%Y-%m-%d') }}" required>
                             </div>
 
-                            <!-- Account -->
                             <div class="col-md-6">
-                                <label for="account_id" class="form-label">账户 <span class="text-danger">*</span></label>
-                                <select class="form-select" id="account_id" name="account_id" required>
+                                <label for="account_id" class="form-label small fw-bold">选择账户 <span class="text-danger">*</span></label>
+                                <select class="form-select form-select-lg" id="account_id" name="account_id" required>
                                     <option value="">请选择账户</option>
                                     {% for account in accounts %}
                                     <option value="{{ account.id }}" {% if transaction.account_id == account.id %}selected{% endif %}>
@@ -46,62 +46,64 @@
                                 </select>
                             </div>
 
-                            <!-- Summary -->
                             <div class="col-12">
-                                <label for="summary" class="form-label">摘要</label>
-                                <input type="text" class="form-control" id="summary" name="summary"
-                                       maxlength="200" placeholder="请输入摘要描述"
+                                <label for="summary" class="form-label small fw-bold">摘要说明</label>
+                                <input type="text" class="form-control form-control-lg" id="summary" name="summary" 
+                                       maxlength="200" placeholder="摘要描述..." 
                                        value="{{ transaction.summary or '' }}">
                             </div>
 
-                            <!-- Income -->
+                            <!-- Financial Section -->
+                            <div class="col-12 mt-5">
+                                <h6 class="text-primary border-start border-primary border-4 ps-2 mb-3">金额设置</h6>
+                            </div>
+
                             <div class="col-md-6">
-                                <label for="income" class="form-label">收入</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">¥</span>
-                                    <input type="number" class="form-control" id="income" name="income"
-                                           value="{{ transaction.income }}" step="0.01" min="0">
+                                <div class="amount-input-group income-group p-3 rounded border">
+                                    <label for="income" class="form-label small fw-bold text-success"><i class="bi bi-plus-circle me-1"></i> 收入金额</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent border-0 fs-4 text-success">¥</span>
+                                        <input type="number" class="form-control form-control-lg border-0 bg-transparent text-success fs-3 fw-bold" 
+                                               id="income" name="income" value="{{ transaction.income }}" step="0.01" min="0">
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Expense -->
                             <div class="col-md-6">
-                                <label for="expense" class="form-label">支出</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">¥</span>
-                                    <input type="number" class="form-control" id="expense" name="expense"
-                                           value="{{ transaction.expense }}" step="0.01" min="0">
+                                <div class="amount-input-group expense-group p-3 rounded border">
+                                    <label for="expense" class="form-label small fw-bold text-danger"><i class="bi bi-dash-circle me-1"></i> 支出金额</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-transparent border-0 fs-4 text-danger">¥</span>
+                                        <input type="number" class="form-control form-control-lg border-0 bg-transparent text-danger fs-3 fw-bold" 
+                                               id="expense" name="expense" value="{{ transaction.expense }}" step="0.01" min="0">
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Note 1 (Two-Level) -->
+                            <!-- Classification Section -->
+                            <div class="col-12 mt-5">
+                                <h6 class="text-primary border-start border-primary border-4 ps-2 mb-3">分类与备注</h6>
+                            </div>
+
                             <div class="col-md-6">
-                                <label for="note1" class="form-label">备注1</label>
+                                <label class="form-label small fw-bold">交易分类 (Note1)</label>
                                 <div class="input-group">
                                     <select class="form-select" id="note1_parent" style="max-width: 40%;" onchange="updateNote1Children()">
-                                        <option value="">-- 一级 --</option>
+                                        <option value="">一级分类</option>
                                         {% for parent in note1_options.keys() %}
                                         <option value="{{ parent }}" {% if note1_parent == parent %}selected{% endif %}>{{ parent }}</option>
                                         {% endfor %}
                                     </select>
-                                    <input type="text" class="form-control" id="note1" name="note1" list="note1-children" placeholder="输入或选择二级..." autocomplete="off" value="{{ note1_child }}">
+                                    <input type="text" class="form-control" id="note1" name="note1" list="note1-children" 
+                                           placeholder="二级分类..." autocomplete="off" value="{{ note1_child }}">
                                 </div>
-                                <datalist id="note1-children">
-                                    <!-- Will be populated by JavaScript -->
-                                </datalist>
-                                <datalist id="note1-all-options">
-                                    {% for parent, children in note1_options.items() %}
-                                    {% for child in children %}
-                                    <option value="{{ parent }}-{{ child }}">
-                                    {% endfor %}
-                                    {% endfor %}
-                                </datalist>
+                                <datalist id="note1-children"></datalist>
                             </div>
 
-                            <!-- Note 2 -->
                             <div class="col-md-6">
-                                <label for="note2" class="form-label">备注2</label>
-                                <input type="text" class="form-control" id="note2" name="note2" list="note2-list" placeholder="输入或选择..." autocomplete="off" value="{{ transaction.note2 or '' }}">
+                                <label for="note2" class="form-label small fw-bold">辅助说明 (Note2)</label>
+                                <input type="text" class="form-control" id="note2" name="note2" list="note2-list" 
+                                       placeholder="辅助说明..." autocomplete="off" value="{{ transaction.note2 or '' }}">
                                 <datalist id="note2-list">
                                     {% for option in note_options.note2 %}
                                     <option value="{{ option.option_value }}">
@@ -109,10 +111,10 @@
                                 </datalist>
                             </div>
 
-                            <!-- Note 3 -->
-                            <div class="col-md-6">
-                                <label for="note3" class="form-label">备注3</label>
-                                <input type="text" class="form-control" id="note3" name="note3" list="note3-list" placeholder="输入或选择..." autocomplete="off" value="{{ transaction.note3 or '' }}">
+                            <div class="col-md-4">
+                                <label for="note3" class="form-label small fw-bold">备注3</label>
+                                <input type="text" class="form-control form-control-sm" id="note3" name="note3" list="note3-list" 
+                                       value="{{ transaction.note3 or '' }}">
                                 <datalist id="note3-list">
                                     {% for option in note_options.note3 %}
                                     <option value="{{ option.option_value }}">
@@ -120,10 +122,10 @@
                                 </datalist>
                             </div>
 
-                            <!-- Note 4 -->
-                            <div class="col-md-6">
-                                <label for="note4" class="form-label">备注4</label>
-                                <input type="text" class="form-control" id="note4" name="note4" list="note4-list" placeholder="输入或选择..." autocomplete="off" value="{{ transaction.note4 or '' }}">
+                            <div class="col-md-4">
+                                <label for="note4" class="form-label small fw-bold">备注4</label>
+                                <input type="text" class="form-control form-control-sm" id="note4" name="note4" list="note4-list" 
+                                       value="{{ transaction.note4 or '' }}">
                                 <datalist id="note4-list">
                                     {% for option in note_options.note4 %}
                                     <option value="{{ option.option_value }}">
@@ -131,61 +133,61 @@
                                 </datalist>
                             </div>
 
-                            <!-- Note 5 -->
-                            <div class="col-md-6">
-                                <label for="note5" class="form-label">备注5</label>
-                                <input type="text" class="form-control" id="note5" name="note5" maxlength="200" placeholder="请输入备注内容" value="{{ transaction.note5 or '' }}">
+                            <div class="col-md-4">
+                                <label for="note5" class="form-label small fw-bold">备注5</label>
+                                <input type="text" class="form-control form-control-sm" id="note5" name="note5" 
+                                       maxlength="200" value="{{ transaction.note5 or '' }}">
                             </div>
                         </div>
 
-                        <hr class="my-4">
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
-                                <i class="bi bi-x-circle"></i> 取消
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-check-circle"></i> 保存修改
+                        <div class="mt-5 d-flex gap-3">
+                            <button type="submit" class="btn btn-primary btn-lg px-5 flex-grow-1">
+                                <i class="bi bi-check-circle me-2"></i>保存修改
                             </button>
+                            <a href="{{ url_for('list_transactions') }}" class="btn btn-light btn-lg px-4">
+                                取消
+                            </a>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Current Info Card -->
-            <div class="card mt-3 border-info">
+            <!-- History Card -->
+            <div class="card mt-3 border-0 shadow-sm">
                 <div class="card-body">
-                    <h6 class="card-title text-info"><i class="bi bi-info-circle"></i> 当前记录信息</h6>
                     <div class="row small text-muted">
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>创建时间：</strong>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') if transaction.created_at else '-' }}</p>
+                        <div class="col-6">
+                            <p class="mb-0">创建于: {{ transaction.created_at.strftime('%Y-%m-%d %H:%M') if transaction.created_at else '-' }}</p>
                         </div>
-                        <div class="col-md-6">
-                            <p class="mb-1"><strong>更新时间：</strong>{{ transaction.updated_at.strftime('%Y-%m-%d %H:%M') if transaction.updated_at else '-' }}</p>
+                        <div class="col-6 text-end">
+                            <p class="mb-0">最后修改: {{ transaction.updated_at.strftime('%Y-%m-%d %H:%M') if transaction.updated_at else '-' }}</p>
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- Tips -->
-            <div class="card mt-3 border-warning">
-                <div class="card-body">
-                    <h6 class="card-title text-warning"><i class="bi bi-exclamation-triangle"></i> 注意事项</h6>
-                    <ul class="mb-0 small text-muted">
-                        <li>修改流水后，系统会自动重新计算该账户所有相关记录的余额</li>
-                        <li>如果修改了账户，原账户和新账户的余额都会重新计算</li>
-                        <li>收入和支出只需填写一项，另一项保持为0</li>
-                    </ul>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+<style>
+    .amount-input-group {
+        transition: all 0.3s ease;
+        background-color: var(--bs-light);
+    }
+    .amount-input-group.active {
+        background-color: #fff;
+        border-color: inherit;
+        opacity: 1;
+    }
+    .amount-input-group.inactive {
+        opacity: 0.5;
+        background-color: #f8f9fa;
+    }
+</style>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-    // Note1 options data for two-level selection
     const note1Options = {{ note1_options|tojson }};
 
     function updateNote1Children() {
@@ -193,13 +195,11 @@
         const childDatalist = document.getElementById('note1-children');
         const childInput = document.getElementById('note1');
         const selectedParent = parentSelect.value;
+        const currentChild = {{ note1_child|tojson }};
 
-        // Clear existing options
         childDatalist.innerHTML = '';
-        childInput.value = '';
 
         if (selectedParent && note1Options[selectedParent]) {
-            // Add children for selected parent
             note1Options[selectedParent].forEach(function(child) {
                 const option = document.createElement('option');
                 option.value = child;
@@ -208,50 +208,54 @@
         }
     }
 
-    // Smart input handler for note1 - allows typing "parent-child" to auto-select
-    document.getElementById('note1').addEventListener('input', function() {
-        const value = this.value.trim();
-        const parentSelect = document.getElementById('note1_parent');
-
-        // Check if input matches "parent-child" format
-        for (const parent in note1Options) {
-            if (value.startsWith(parent + '-')) {
-                const child = value.substring(parent.length + 1);
-                if (note1Options[parent].includes(child)) {
-                    parentSelect.value = parent;
-                    updateNote1Children();
-                    this.value = child;
-                    break;
-                }
-            }
-        }
-    });
-
     document.addEventListener('DOMContentLoaded', function() {
         const incomeInput = document.getElementById('income');
         const expenseInput = document.getElementById('expense');
+        const incomeGroup = incomeInput.closest('.amount-input-group');
+        const expenseGroup = expenseInput.closest('.amount-input-group');
 
-        // Initialize note1 children on page load
-        updateNote1Children();
-        // Restore the child value after population
-        document.getElementById('note1').value = {{ note1_child|tojson }};
+        function updateInputStyles() {
+            const income = parseFloat(incomeInput.value) || 0;
+            const expense = parseFloat(expenseInput.value) || 0;
 
-        // When income is entered, clear expense
+            if (income > 0) {
+                incomeGroup.classList.remove('inactive');
+                incomeGroup.classList.add('active', 'border-success');
+                expenseGroup.classList.add('inactive');
+                expenseGroup.classList.remove('active', 'border-danger');
+            } else if (expense > 0) {
+                expenseGroup.classList.remove('inactive');
+                expenseGroup.classList.add('active', 'border-danger');
+                incomeGroup.classList.add('inactive');
+                incomeGroup.classList.remove('active', 'border-success');
+            } else {
+                incomeGroup.classList.remove('inactive', 'active', 'border-success');
+                expenseGroup.classList.remove('inactive', 'active', 'border-danger');
+            }
+        }
+
         incomeInput.addEventListener('input', function() {
             if (parseFloat(this.value) > 0) {
                 expenseInput.value = '0';
             }
+            updateInputStyles();
         });
 
-        // When expense is entered, clear income
         expenseInput.addEventListener('input', function() {
             if (parseFloat(this.value) > 0) {
                 incomeInput.value = '0';
             }
+            updateInputStyles();
         });
 
+        // Initialize note1 children
+        updateNote1Children();
+        
+        // Initialize styles
+        updateInputStyles();
+
         // Form validation
-        document.querySelector('form').addEventListener('submit', function(e) {
+        document.getElementById('transactionForm').addEventListener('submit', function(e) {
             const income = parseFloat(incomeInput.value) || 0;
             const expense = parseFloat(expenseInput.value) || 0;
 
@@ -261,7 +265,6 @@
                 return false;
             }
 
-            // Combine parent and child for note1 if parent is selected
             const note1Parent = document.getElementById('note1_parent').value;
             const note1Child = document.getElementById('note1').value.trim();
             if (note1Parent && note1Child && !note1Child.startsWith(note1Parent + '-')) {

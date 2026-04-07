@@ -127,13 +127,23 @@ def register_routes(app):
         # Build account name map for display
         account_map = {a.id: a.account_name for a in accounts}
 
+        # 获取最近6个月的收支趋势
+        today = date.today()
+        month_trends = []
+        for i in range(5, -1, -1):
+            m = (today.month - i - 1) % 12 + 1
+            y = today.year + (today.month - i - 1) // 12
+            inc_sum = db.session.query(db.func.sum(Transaction.income)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            exp_sum = db.session.query(db.func.sum(Transaction.expense)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            month_trends.append({'month': f"{y}-{m:02d}", 'income': float(inc_sum), 'expense': float(exp_sum)})
+
         return render_template('dashboard.html',
                                accounts=account_data,
                                total_balance=total_balance,
                                month_income=month_income,
                                month_expense=month_expense,
                                recent_transactions=recent_transactions,
-                               account_map=account_map)
+                               account_map=account_map, month_trends=month_trends)
 
     # ==================== Account Management Routes ====================
 
@@ -429,6 +439,16 @@ def register_routes(app):
         accounts = Account.query.order_by(Account.account_name).all()
         account_map = {a.id: a.account_name for a in accounts}
 
+        # 获取最近6个月的收支趋势
+        today = date.today()
+        month_trends = []
+        for i in range(5, -1, -1):
+            m = (today.month - i - 1) % 12 + 1
+            y = today.year + (today.month - i - 1) // 12
+            inc_sum = db.session.query(db.func.sum(Transaction.income)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            exp_sum = db.session.query(db.func.sum(Transaction.expense)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            month_trends.append({'month': f"{y}-{m:02d}", 'income': float(inc_sum), 'expense': float(exp_sum)})
+
         # Get note options for display
         note_options = NoteOption.get_all_options_dict()
 
@@ -621,6 +641,16 @@ def register_routes(app):
         # Get account map
         accounts = Account.query.all()
         account_map = {a.id: a.account_name for a in accounts}
+
+        # 获取最近6个月的收支趋势
+        today = date.today()
+        month_trends = []
+        for i in range(5, -1, -1):
+            m = (today.month - i - 1) % 12 + 1
+            y = today.year + (today.month - i - 1) // 12
+            inc_sum = db.session.query(db.func.sum(Transaction.income)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            exp_sum = db.session.query(db.func.sum(Transaction.expense)).filter(db.extract('year', Transaction.date) == y, db.extract('month', Transaction.date) == m).scalar() or 0
+            month_trends.append({'month': f"{y}-{m:02d}", 'income': float(inc_sum), 'expense': float(exp_sum)})
 
         # Generate Excel
         output = export_transactions_to_excel(transactions, account_map)

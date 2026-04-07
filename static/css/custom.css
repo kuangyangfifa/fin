@@ -853,3 +853,151 @@ hr {
   border-color: var(--surface-bg);
   opacity: 1;
 }
+
+/* ============================================
+   财务管理系统 - 前端优化增强
+   ============================================ */
+
+/* 1. 微动效增强 */
+.card, .btn, .nav-link, .stat-card {
+  transition: all var(--transition-fast);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg) !important;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* 2. 登录页专用 - 沉浸式毛玻璃 */
+.login-page {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4f46e5 100%);
+  min-height: 100vh;
+  margin: calc(-1 * var(--space-8)) calc(-1 * var(--space-8));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+/* 如果是未登录状态，main-content 不应该有 padding 或者背景 */
+body:not(.authenticated) .main-content {
+  margin-left: 0;
+  padding: 0;
+  background: none;
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  padding: var(--space-10) var(--space-8);
+  width: 100%;
+  max-width: 420px;
+}
+
+.glass-card .form-control {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+}
+
+.glass-card .form-control:focus {
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 0 4px var(--primary-soft);
+}
+
+.glass-card .input-group-text {
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: var(--text-secondary);
+}
+
+/* 3. 悬浮按钮 (FAB) */
+.fab {
+  position: fixed;
+  bottom: var(--space-8);
+  right: var(--space-8);
+  width: 60px;
+  height: 60px;
+  border-radius: 30px;
+  background-color: var(--primary-color);
+  color: white !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5);
+  z-index: 1030;
+  text-decoration: none;
+  font-size: 1.8rem;
+  transition: all var(--transition);
+}
+
+.fab:hover {
+  background-color: var(--primary-dark);
+  transform: scale(1.1) rotate(90deg);
+  box-shadow: 0 15px 30px -5px rgba(99, 102, 241, 0.6);
+}
+
+/* 4. 流水表格 - 响应式卡片流 */
+@media (max-width: 768px) {
+  .responsive-table-container {
+    background: transparent;
+    box-shadow: none;
+    padding: 0 !important;
+  }
+  
+  .responsive-table-container .table-responsive {
+    display: none !important;
+  }
+  
+  .mobile-cards {
+    display: block !important;
+  }
+}
+
+.mobile-cards {
+  display: none;
+}
+
+.transaction-card {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  border-left: 4px solid var(--primary-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition);
+}
+
+.transaction-card:active {
+  transform: scale(0.98);
+}
+
+.transaction-card.income {
+  border-left-color: var(--success);
+}
+
+.transaction-card.expense {
+  border-left-color: var(--danger);
+}
+
+.card-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+/* 5. 图表容器 */
+.chart-container {
+  position: relative;
+  height: 320px;
+  width: 100%;
+  padding: var(--space-2);
+}
