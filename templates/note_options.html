@@ -7,12 +7,13 @@
 {% endblock %}
 
 {% block content %}
+{% set note_labels = {'note1': '项目', 'note2': '学费/退费专用', 'note3': '对象', 'note4': '报销专用', 'note5': '特殊说明事项'} %}
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">备注选项管理</h4>
         <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addNote1OptionModal">
-            <i class="bi bi-plus-circle"></i> 添加备注1选项
+            <i class="bi bi-plus-circle"></i> 添加项目选项
         </button>
     </div>
 
@@ -21,7 +22,7 @@
         <div class="col-12">
             <div class="card">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-tags"></i> 备注1（二级联动选项）</span>
+                    <span><i class="bi bi-tags"></i> 项目（二级联动选项）</span>
                     <span class="badge bg-primary">{{ note1_options|length }} 个一级选项</span>
                 </div>
                 <div class="card-body">
@@ -71,7 +72,7 @@
                     {% else %}
                     <div class="text-center py-4 text-muted">
                         <i class="bi bi-tags" style="font-size: 2rem;"></i>
-                        <p class="mb-0 mt-2">暂无备注1选项</p>
+                        <p class="mb-0 mt-2">暂无项目选项</p>
                         <button class="btn btn-sm btn-outline-primary mt-2" data-bs-toggle="modal" data-bs-target="#addNote1OptionModal">
                             <i class="bi bi-plus-circle"></i> 添加第一个选项
                         </button>
@@ -85,13 +86,13 @@
     <!-- Note2-5 Options -->
     <div class="row">
         <div class="col-12">
-            <h5 class="mb-3">备注2-5（普通选项）</h5>
+            <h5 class="mb-3">学费/退费专用、对象、报销专用、特殊说明事项（普通选项）</h5>
         </div>
         {% for field_name, options in options_by_field.items() %}
         <div class="col-md-6 col-lg-3 mb-4">
             <div class="card h-100">
                 <div class="card-header d-flex justify-content-between align-items-center">
-                    <span><i class="bi bi-tag"></i> 备注{{ loop.index + 1 }}</span>
+                    <span><i class="bi bi-tag"></i> {{ note_labels[field_name] }}</span>
                     <span class="badge bg-secondary">{{ options|length }} 个选项</span>
                 </div>
                 <div class="card-body p-0">
@@ -142,7 +143,7 @@
         <div class="modal-content">
             <form method="POST" action="{{ url_for('add_note1_option') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">添加备注1选项（二级联动）</h5>
+                    <h5 class="modal-title">添加项目选项（二级联动）</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -182,7 +183,7 @@
         <div class="modal-content">
             <form method="POST" action="{{ url_for('add_note_option') }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">添加备注{{ loop.index + 1 }}选项</h5>
+                    <h5 class="modal-title">添加{{ note_labels[field_name] }}选项</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -220,8 +221,8 @@
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label">备注字段</label>
-                        <input type="text" class="form-control" value="备注{{ field_name[-1] }}" disabled>
+                        <label class="form-label">字段</label>
+                        <input type="text" class="form-control" value="{{ note_labels[field_name] }}" disabled>
                     </div>
                     <div class="mb-3">
                         <label for="edit_value_{{ option.id }}" class="form-label">选项值 <span class="text-danger">*</span></label>
@@ -279,7 +280,7 @@
         <div class="modal-content">
             <form method="POST" action="{{ url_for('edit_note1_option', option_id=child.id) }}">
                 <div class="modal-header">
-                    <h5 class="modal-title">编辑备注1选项</h5>
+                    <h5 class="modal-title">编辑项目选项</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">

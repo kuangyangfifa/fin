@@ -31,7 +31,7 @@ def export_transactions_to_excel(transactions, account_map=None):
     )
 
     # Headers
-    headers = ['ID', '日期', '账户', '摘要', '收入', '支出', '余额', '备注1', '备注2', '备注3', '备注4', '备注5']
+    headers = ['ID', '日期', '账户', '摘要', '收入', '支出', '余额', '项目', '学费/退费专用', '对象', '报销专用', '特殊说明事项']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.fill = header_fill
@@ -100,7 +100,7 @@ def create_import_template():
     example_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 
     # Headers
-    headers = ['日期', '账户名称', '摘要', '收入', '支出', '备注1', '备注2', '备注3', '备注4', '备注5']
+    headers = ['日期', '账户名称', '摘要', '收入', '支出', '项目', '学费/退费专用', '对象', '报销专用', '特殊说明事项']
     for col, header in enumerate(headers, 1):
         cell = ws.cell(row=1, column=col, value=header)
         cell.fill = header_fill

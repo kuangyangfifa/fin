@@ -1,17 +1,17 @@
 {% extends "base.html" %}
 
-{% block title %}备注维度分析 - 公司账户日流水管理系统{% endblock %}
+{% block title %}分类维度分析 - 公司账户日流水管理系统{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('reports') }}">报表分析</a></li>
-<li class="breadcrumb-item active">备注维度分析</li>
+<li class="breadcrumb-item active">分类维度分析</li>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h4 class="mb-0">备注维度分析</h4>
+        <h4 class="mb-0">分类维度分析</h4>
         <a href="{{ url_for('reports') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回
         </a>
@@ -36,11 +36,11 @@
                     <div class="col-md-2">
                         <label class="form-label">备注字段</label>
                         <select class="form-select" name="note_field">
-                            <option value="note1" {% if note_field == 'note1' %}selected{% endif %}>备注1</option>
-                            <option value="note2" {% if note_field == 'note2' %}selected{% endif %}>备注2</option>
-                            <option value="note3" {% if note_field == 'note3' %}selected{% endif %}>备注3</option>
-                            <option value="note4" {% if note_field == 'note4' %}selected{% endif %}>备注4</option>
-                            <option value="note5" {% if note_field == 'note5' %}selected{% endif %}>备注5</option>
+                            <option value="note1" {% if note_field == 'note1' %}selected{% endif %}>项目</option>
+                            <option value="note2" {% if note_field == 'note2' %}selected{% endif %}>学费/退费专用</option>
+                            <option value="note3" {% if note_field == 'note3' %}selected{% endif %}>对象</option>
+                            <option value="note4" {% if note_field == 'note4' %}selected{% endif %}>报销专用</option>
+                            <option value="note5" {% if note_field == 'note5' %}selected{% endif %}>特殊说明事项</option>
                         </select>
                     </div>
                     <div class="col-md-2">

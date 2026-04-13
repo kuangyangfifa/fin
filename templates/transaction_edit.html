@@ -86,7 +86,7 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label small fw-bold">交易分类 (Note1)</label>
+                                <label class="form-label small fw-bold">项目</label>
                                 <div class="input-group">
                                     <select class="form-select" id="note1_parent" style="max-width: 40%;" onchange="updateNote1Children()">
                                         <option value="">一级分类</option>
@@ -101,7 +101,7 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label for="note2" class="form-label small fw-bold">辅助说明 (Note2)</label>
+                                <label for="note2" class="form-label small fw-bold">学费/退费专用</label>
                                 <input type="text" class="form-control" id="note2" name="note2" list="note2-list" 
                                        placeholder="辅助说明..." autocomplete="off" value="{{ transaction.note2 or '' }}">
                                 <datalist id="note2-list">
@@ -112,7 +112,7 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label for="note3" class="form-label small fw-bold">备注3</label>
+                                <label for="note3" class="form-label small fw-bold">对象</label>
                                 <input type="text" class="form-control form-control-sm" id="note3" name="note3" list="note3-list" 
                                        value="{{ transaction.note3 or '' }}">
                                 <datalist id="note3-list">
@@ -123,7 +123,7 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label for="note4" class="form-label small fw-bold">备注4</label>
+                                <label for="note4" class="form-label small fw-bold">报销专用</label>
                                 <input type="text" class="form-control form-control-sm" id="note4" name="note4" list="note4-list" 
                                        value="{{ transaction.note4 or '' }}">
                                 <datalist id="note4-list">
@@ -134,7 +134,7 @@
                             </div>
 
                             <div class="col-md-4">
-                                <label for="note5" class="form-label small fw-bold">备注5</label>
+                                <label for="note5" class="form-label small fw-bold">特殊说明事项</label>
                                 <input type="text" class="form-control form-control-sm" id="note5" name="note5" 
                                        maxlength="200" value="{{ transaction.note5 or '' }}">
                             </div>
