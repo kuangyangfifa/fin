@@ -35,59 +35,71 @@
         <!-- Navigation -->
         <ul class="nav flex-column flex-grow-1 py-3">
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">
+                <a class="nav-link {% if request.endpoint == 'main.index' %}active{% endif %}" href="{{ url_for('main.index') }}">
                     <i class="bi bi-speedometer2"></i>
                     <span>首页概览</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'accounts' %}active{% endif %}" href="{{ url_for('accounts') }}">
+                <a class="nav-link {% if request.endpoint == 'accounts.accounts' %}active{% endif %}" href="{{ url_for('accounts.accounts') }}">
                     <i class="bi bi-bank"></i>
                     <span>账户管理</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'add_transaction' %}active{% endif %}" href="{{ url_for('add_transaction') }}">
+                <a class="nav-link {% if request.endpoint == 'transactions.add_transaction' %}active{% endif %}" href="{{ url_for('transactions.add_transaction') }}">
                     <i class="bi bi-plus-circle"></i>
                     <span>流水录入</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'list_transactions' %}active{% endif %}" href="{{ url_for('list_transactions') }}">
+                <a class="nav-link {% if request.endpoint == 'transactions.list_transactions' %}active{% endif %}" href="{{ url_for('transactions.list_transactions') }}">
                     <i class="bi bi-list-ul"></i>
                     <span>流水查询</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'import_transactions' %}active{% endif %}" href="{{ url_for('import_transactions') }}">
+                <a class="nav-link {% if request.endpoint == 'transactions.import_transactions' %}active{% endif %}" href="{{ url_for('transactions.import_transactions') }}">
                     <i class="bi bi-upload"></i>
                     <span>Excel导入</span>
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint in ['reports', 'report_daily', 'report_monthly', 'report_by_note'] %}active{% endif %}" href="{{ url_for('reports') }}">
+                <a class="nav-link {% if request.endpoint in ['reports.reports', 'reports.report_daily', 'reports.report_monthly', 'reports.report_by_note'] %}active{% endif %}" href="{{ url_for('reports.reports') }}">
                     <i class="bi bi-graph-up"></i>
                     <span>报表分析</span>
                 </a>
             </li>
+            {% if current_user.is_admin %}
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint == 'note_options' %}active{% endif %}" href="{{ url_for('note_options') }}">
+                <a class="nav-link {% if request.endpoint == 'settings.note_options' %}active{% endif %}" href="{{ url_for('settings.note_options') }}">
                     <i class="bi bi-tags"></i>
                     <span>备注选项管理</span>
                 </a>
             </li>
+            <li class="nav-item">
+                <a class="nav-link {% if request.endpoint == 'settings.users' %}active{% endif %}" href="{{ url_for('settings.users') }}">
+                    <i class="bi bi-people"></i>
+                    <span>用户管理</span>
+                </a>
+            </li>
+            {% endif %}
         </ul>
 
         <!-- Footer / User Info -->
         <div class="sidebar-footer">
-            <div class="d-flex align-items-center justify-content-between">
-                <div class="user-info">
-                    <i class="bi bi-person-circle"></i>
-                    <span>{{ current_user.username }}</span>
-                </div>
-                <a href="{{ url_for('logout') }}" class="btn btn-sm btn-outline-light">
-                    <i class="bi bi-box-arrow-right"></i>
-                </a>
+            <div class="dropdown w-100">
+                <button class="btn btn-sm btn-outline-light dropdown-toggle w-100 d-flex align-items-center justify-content-between" type="button" data-bs-toggle="dropdown">
+                    <span class="user-info">
+                        <i class="bi bi-person-circle"></i>
+                        <span>{{ current_user.username }}</span>
+                    </span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-dark w-100">
+                    <li><a class="dropdown-item" href="{{ url_for('auth.change_password') }}"><i class="bi bi-key me-2"></i>修改密码</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="bi bi-box-arrow-right me-2"></i>退出登录</a></li>
+                </ul>
             </div>
         </div>
     </nav>
@@ -105,7 +117,7 @@
                 <nav aria-label="breadcrumb">
                     <ol class="breadcrumb mb-0">
                         <li class="breadcrumb-item">
-                            <a href="{{ url_for('index') }}">
+                            <a href="{{ url_for('main.index') }}">
                                 <i class="bi bi-house-door"></i> 首页
                             </a>
                         </li>

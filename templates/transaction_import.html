@@ -3,7 +3,7 @@
 {% block title %}Excel导入 - 公司账户日流水管理系统{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('list_transactions') }}">流水查询</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('transactions.list_transactions') }}">流水查询</a></li>
 <li class="breadcrumb-item active">Excel导入</li>
 {% endblock %}
 
@@ -12,7 +12,7 @@
     <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">Excel导入</h4>
-        <a href="{{ url_for('list_transactions') }}" class="btn btn-outline-secondary">
+        <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-outline-secondary">
             <i class="bi bi-arrow-left"></i> 返回列表
         </a>
     </div>
@@ -25,7 +25,7 @@
                     <i class="bi bi-upload"></i> 上传Excel文件
                 </div>
                 <div class="card-body">
-                    <form method="POST" action="{{ url_for('import_transactions') }}" enctype="multipart/form-data">
+                    <form method="POST" action="{{ url_for('transactions.import_transactions') }}" enctype="multipart/form-data">
                         <div class="mb-4">
                             <label for="file" class="form-label">选择Excel文件 <span class="text-danger">*</span></label>
                             <input type="file" class="form-control" id="file" name="file" accept=".xlsx,.xls" required>
@@ -100,7 +100,7 @@
                         </div>
 
                         <div class="d-flex justify-content-between">
-                            <a href="{{ url_for('download_import_template') }}" class="btn btn-outline-info">
+                            <a href="{{ url_for('transactions.download_import_template') }}" class="btn btn-outline-info">
                                 <i class="bi bi-download"></i> 下载导入模板
                             </a>
                             <button type="submit" class="btn btn-primary">
@@ -121,7 +121,7 @@
                 <div class="card-body">
                     <h6 class="card-title">导入流程</h6>
                     <ol class="small">
-                        <li>先<a href="{{ url_for('accounts') }}">创建账户</a>（如果还没有）</li>
+                        <li>先<a href="{{ url_for('accounts.accounts') }}">创建账户</a>（如果还没有）</li>
                         <li>下载导入模板，按格式填写数据</li>
                         <li>上传填写好的Excel文件</li>
                         <li>系统会自动验证数据并导入</li>

@@ -3,7 +3,7 @@
 {% block title %}流水录入 - 公司账户日流水管理系统{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('list_transactions') }}">流水查询</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('transactions.list_transactions') }}">流水查询</a></li>
 <li class="breadcrumb-item active">流水录入</li>
 {% endblock %}
 
@@ -22,7 +22,7 @@
                 </div>
                 <div class="card-body px-4 pb-4">
                     {% if accounts %}
-                    <form method="POST" action="{{ url_for('add_transaction') }}" id="transactionForm">
+                    <form method="POST" action="{{ url_for('transactions.add_transaction') }}" id="transactionForm">
                         <div class="row g-4">
                             <!-- Basic Info Section -->
                             <div class="col-12">
@@ -147,7 +147,7 @@
                         </div>
                         <h5>暂无可用账户</h5>
                         <p class="text-muted">请先创建至少一个账户，然后再录入流水。</p>
-                        <a href="{{ url_for('accounts') }}" class="btn btn-primary px-4 mt-2">
+                        <a href="{{ url_for('accounts.accounts') }}" class="btn btn-primary px-4 mt-2">
                             <i class="bi bi-plus-circle me-1"></i> 去创建账户
                         </a>
                     </div>

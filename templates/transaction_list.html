@@ -12,10 +12,10 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">流水查询</h4>
         <div class="d-flex gap-2 d-none d-md-flex">
-            <a href="{{ url_for('export_transactions', start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}" class="btn btn-success">
+            <a href="{{ url_for('transactions.export_transactions', start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}" class="btn btn-success">
                 <i class="bi bi-download"></i> 导出Excel
             </a>
-            <a href="{{ url_for('add_transaction') }}" class="btn btn-primary">
+            <a href="{{ url_for('transactions.add_transaction') }}" class="btn btn-primary">
                 <i class="bi bi-plus-circle"></i> 新增流水
             </a>
         </div>
@@ -27,7 +27,7 @@
             <h6 class="mb-0"><i class="bi bi-funnel me-2"></i>查询条件</h6>
         </div>
         <div class="card-body">
-            <form method="GET" action="{{ url_for('list_transactions') }}">
+            <form method="GET" action="{{ url_for('transactions.list_transactions') }}">
                 <div class="row g-3">
                     <div class="col-md-3">
                         <label class="form-label small text-muted">开始日期</label>
@@ -57,7 +57,7 @@
                     <button type="submit" class="btn btn-primary px-4">
                         <i class="bi bi-search me-1"></i> 查询
                     </button>
-                    <a href="{{ url_for('list_transactions') }}" class="btn btn-light px-4">
+                    <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-light px-4">
                         <i class="bi bi-x-circle me-1"></i> 重置
                     </a>
                 </div>
@@ -159,7 +159,7 @@
                             </td>
                             <td class="text-center">
                                 <div class="btn-group">
-                                    <a href="{{ url_for('edit_transaction', transaction_id=trans.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
+                                    <a href="{{ url_for('transactions.edit_transaction', transaction_id=trans.id) }}" class="btn btn-sm btn-outline-primary"><i class="bi bi-pencil"></i></a>
                                     <button class="btn btn-sm btn-outline-danger" data-bs-toggle="modal" data-bs-target="#deleteModal{{ trans.id }}"><i class="bi bi-trash"></i></button>
                                 </div>
                             </td>
@@ -194,7 +194,7 @@
                             </div>
                         </div>
                         <div class="btn-group shadow-sm">
-                            <a href="{{ url_for('edit_transaction', transaction_id=trans.id) }}" class="btn btn-sm btn-white border"><i class="bi bi-pencil text-primary"></i></a>
+                            <a href="{{ url_for('transactions.edit_transaction', transaction_id=trans.id) }}" class="btn btn-sm btn-white border"><i class="bi bi-pencil text-primary"></i></a>
                             <button class="btn btn-sm btn-white border" data-bs-toggle="modal" data-bs-target="#deleteModal{{ trans.id }}"><i class="bi bi-trash text-danger"></i></button>
                         </div>
                     </div>
@@ -207,19 +207,19 @@
             <nav class="p-3">
                 <ul class="pagination pagination-sm justify-content-center mb-0">
                     {% if pagination.has_prev %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('list_transactions', page=pagination.prev_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}"><i class="bi bi-chevron-left"></i></a></li>
+                    <li class="page-item"><a class="page-link" href="{{ url_for('transactions.list_transactions', page=pagination.prev_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}"><i class="bi bi-chevron-left"></i></a></li>
                     {% endif %}
                     {% for page_num in pagination.iter_pages(left_edge=1, left_current=2, right_current=2, right_edge=1) %}
                         {% if page_num %}
                             <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
-                                <a class="page-link" href="{{ url_for('list_transactions', page=page_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}">{{ page_num }}</a>
+                                <a class="page-link" href="{{ url_for('transactions.list_transactions', page=page_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}">{{ page_num }}</a>
                             </li>
                         {% else %}
                             <li class="page-item disabled"><span class="page-link">...</span></li>
                         {% endif %}
                     {% endfor %}
                     {% if pagination.has_next %}
-                    <li class="page-item"><a class="page-link" href="{{ url_for('list_transactions', page=pagination.next_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}"><i class="bi bi-chevron-right"></i></a></li>
+                    <li class="page-item"><a class="page-link" href="{{ url_for('transactions.list_transactions', page=pagination.next_num, start_date=start_date, end_date=end_date, account_id=selected_account, keyword=keyword) }}"><i class="bi bi-chevron-right"></i></a></li>
                     {% endif %}
                 </ul>
             </nav>
@@ -232,7 +232,7 @@
             <div class="text-center py-5">
                 <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
                 <p class="text-muted mt-3">没有找到符合条件的流水记录</p>
-                <a href="{{ url_for('add_transaction') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> 录入流水</a>
+                <a href="{{ url_for('transactions.add_transaction') }}" class="btn btn-primary"><i class="bi bi-plus-circle me-1"></i> 录入流水</a>
             </div>
             {% endif %}
         </div>
@@ -240,7 +240,7 @@
 </div>
 
 <!-- Floating Action Button for Mobile -->
-<a href="{{ url_for('add_transaction') }}" class="fab d-md-none">
+<a href="{{ url_for('transactions.add_transaction') }}" class="fab d-md-none">
     <i class="bi bi-plus-lg"></i>
 </a>
 
@@ -249,7 +249,7 @@
 <div class="modal fade" id="deleteModal{{ trans.id }}" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <form method="POST" action="{{ url_for('delete_transaction', transaction_id=trans.id) }}">
+            <form method="POST" action="{{ url_for('transactions.delete_transaction', transaction_id=trans.id) }}">
                 <div class="modal-header border-0 pb-0">
                     <h5 class="modal-title">确认删除</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

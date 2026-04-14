@@ -3,7 +3,7 @@
 {% block title %}编辑流水 - 公司账户日流水管理系统{% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{{ url_for('list_transactions') }}">流水查询</a></li>
+<li class="breadcrumb-item"><a href="{{ url_for('transactions.list_transactions') }}">流水查询</a></li>
 <li class="breadcrumb-item active">编辑流水</li>
 {% endblock %}
 
@@ -21,7 +21,7 @@
                     </div>
                 </div>
                 <div class="card-body px-4 pb-4">
-                    <form method="POST" action="{{ url_for('edit_transaction', transaction_id=transaction.id) }}" id="transactionForm">
+                    <form method="POST" action="{{ url_for('transactions.edit_transaction', transaction_id=transaction.id) }}" id="transactionForm">
                         <div class="row g-4">
                             <!-- Basic Info Section -->
                             <div class="col-12">
@@ -144,7 +144,7 @@
                             <button type="submit" class="btn btn-primary btn-lg px-5 flex-grow-1">
                                 <i class="bi bi-check-circle me-2"></i>保存修改
                             </button>
-                            <a href="{{ url_for('list_transactions') }}" class="btn btn-light btn-lg px-4">
+                            <a href="{{ url_for('transactions.list_transactions') }}" class="btn btn-light btn-lg px-4">
                                 取消
                             </a>
                         </div>
