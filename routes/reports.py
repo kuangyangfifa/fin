@@ -1,7 +1,7 @@
 from datetime import datetime, date
 from flask import Blueprint, render_template, request
 from flask_login import login_required
-from models import db, Account, Transaction, NoteOption
+from models import db, Account, Transaction, NoteOption, Note1Option
 from utils.reporting import month_format, year_format
 
 reports_bp = Blueprint('reports', __name__)
@@ -130,6 +130,8 @@ def report_by_note():
     end_date_str = request.args.get('end_date', '')
     note_field = request.args.get('note_field', 'note1')
     period_type = request.args.get('period_type', 'daily')
+    note1_parent = request.args.get('note1_parent', '').strip()
+    note1_child = request.args.get('note1_child', '').strip()
 
     if not start_date_str:
         start_date_str = date.today().replace(day=1).strftime('%Y-%m-%d')
@@ -167,6 +169,14 @@ def report_by_note():
             Transaction.date <= end_date
         )
 
+    if note_field == 'note1':
+        if note1_parent:
+            prefix = note1_parent + '-'
+            if note1_child:
+                query = query.filter(Transaction.note1 == prefix + note1_child)
+            else:
+                query = query.filter(Transaction.note1.startswith(prefix))
+
     query = query.group_by('period', 'note_value').order_by('period', db.desc(db.func.sum(Transaction.income + Transaction.expense)))
     report_data = query.all()
 
@@ -183,11 +193,15 @@ def report_by_note():
         })
 
     note_options = NoteOption.get_options_for_field(note_field)
+    note1_options = Note1Option.get_all_options_dict()
 
     return render_template('report_by_note.html',
                            periods=periods,
                            note_field=note_field,
                            note_options=note_options,
+                           note1_options=note1_options,
+                           note1_parent=note1_parent,
+                           note1_child=note1_child,
                            period_type=period_type,
                            start_date=start_date_str,
                            end_date=end_date_str)

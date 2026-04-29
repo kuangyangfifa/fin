@@ -1,0 +1,422 @@
+{% extends "base.html" %}
+
+{% block title %}AI 分析助手 - 财务管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">AI 分析助手</li>
+{% endblock %}
+
+{% block content %}
+<div class="ai-chat-container">
+    <!-- Left Sidebar: Session List -->
+    <div class="ai-chat-sidebar">
+        <div class="ai-sidebar-header">
+            <h5><i class="bi bi-chat-left-text"></i> 对话历史</h5>
+            <button class="btn btn-sm btn-primary" id="newSessionBtn" title="新建对话">
+                <i class="bi bi-plus-lg"></i>
+            </button>
+        </div>
+        <div class="ai-session-list" id="sessionList">
+            <div class="text-center text-muted py-4" id="sessionListEmpty">
+                <i class="bi bi-chat-dots fs-1 d-block mb-2"></i>
+                <small>暂无对话记录</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Main: Chat Area -->
+    <div class="ai-chat-main">
+        <!-- Messages Area -->
+        <div class="ai-messages" id="messagesArea">
+            <div class="ai-welcome" id="welcomeMessage">
+                <div class="ai-welcome-icon">
+                    <i class="bi bi-robot"></i>
+                </div>
+                <h4>你好！我是 AI 财务分析助手</h4>
+                <p>你可以问我关于收入、支出、趋势分析等问题</p>
+                <div class="quick-questions">
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月各项目收入是多少？">
+                        本月各项目收入
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="支出结构分析">
+                        支出结构分析
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="近6个月趋势">
+                        近6个月趋势
+                    </button>
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月盈亏概况">
+                        本月盈亏概况
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart Area -->
+        <div class="ai-chart-area" id="chartArea" style="display: none;">
+            <div class="chart-container">
+                <canvas id="chatChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="ai-input-area">
+            <form id="chatForm" class="ai-input-form">
+                <input type="text" class="form-control" id="messageInput"
+                       placeholder="输入你的问题..." autocomplete="off">
+                <button type="submit" class="btn btn-primary" id="sendBtn">
+                    <i class="bi bi-send"></i>
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+(function() {
+    let currentSessionId = null;
+    let currentChart = null;
+
+    // DOM elements
+    const sessionList = document.getElementById('sessionList');
+    const sessionListEmpty = document.getElementById('sessionListEmpty');
+    const messagesArea = document.getElementById('messagesArea');
+    const welcomeMessage = document.getElementById('welcomeMessage');
+    const chartArea = document.getElementById('chartArea');
+    const chatCanvas = document.getElementById('chatChart');
+    const chatForm = document.getElementById('chatForm');
+    const messageInput = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const newSessionBtn = document.getElementById('newSessionBtn');
+
+    // Load sessions on page load
+    loadSessions();
+
+    // New session button
+    newSessionBtn.addEventListener('click', createSession);
+
+    // Chat form submit
+    chatForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+        sendMessage(message);
+    });
+
+    // Quick question buttons
+    document.querySelectorAll('.quick-question').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const question = this.dataset.question;
+            sendMessage(question);
+        });
+    });
+
+    // --- Session Management ---
+
+    function loadSessions() {
+        fetch('/ai/sessions')
+            .then(res => res.json())
+            .then(sessions => {
+                renderSessionList(sessions);
+            })
+            .catch(err => console.error('Failed to load sessions:', err));
+    }
+
+    function renderSessionList(sessions) {
+        if (!sessions || sessions.length === 0) {
+            sessionList.innerHTML = '';
+            sessionList.appendChild(sessionListEmpty);
+            sessionListEmpty.style.display = '';
+            return;
+        }
+
+        sessionListEmpty.style.display = 'none';
+        let html = '';
+
+        // Group by date
+        let groups = {};
+        sessions.forEach(s => {
+            const dateStr = s.updated_at ? s.updated_at.split(' ')[0] : s.created_at;
+            if (!groups[dateStr]) groups[dateStr] = [];
+            groups[dateStr].push(s);
+        });
+
+        for (const [dateStr, items] of Object.entries(groups)) {
+            html += `<div class="session-date-group"><small class="text-muted">${dateStr}</small>`;
+            items.forEach(s => {
+                const active = s.id === currentSessionId ? ' active' : '';
+                html += `<div class="ai-session-item${active}" data-id="${s.id}">
+                    <div class="ai-session-title">${escapeHtml(s.title)}</div>
+                    <div class="ai-session-actions">
+                        <button class="btn btn-sm btn-icon btn-delete-session" data-id="${s.id}" title="删除">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </div>
+                </div>`;
+            });
+            html += '</div>';
+        }
+
+        sessionList.innerHTML = html;
+
+        // Bind click events
+        sessionList.querySelectorAll('.ai-session-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                if (e.target.closest('.btn-delete-session')) return;
+                switchSession(parseInt(this.dataset.id));
+            });
+        });
+
+        sessionList.querySelectorAll('.btn-delete-session').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                deleteSession(parseInt(this.dataset.id));
+            });
+        });
+    }
+
+    function createSession() {
+        fetch('/ai/sessions', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({title: '新对话'}),
+        })
+            .then(res => res.json())
+            .then(data => {
+                currentSessionId = data.id;
+                loadSessions();
+                clearChat();
+            })
+            .catch(err => console.error('Failed to create session:', err));
+    }
+
+    function switchSession(sessionId) {
+        currentSessionId = sessionId;
+        loadSessions();
+
+        fetch(`/ai/sessions/${sessionId}`)
+            .then(res => res.json())
+            .then(data => {
+                clearChat();
+                data.messages.forEach(msg => {
+                    appendMessage(msg.role, msg.content, msg.chart_type, msg.chart_data);
+                });
+            })
+            .catch(err => console.error('Failed to load session:', err));
+    }
+
+    function deleteSession(sessionId) {
+        if (!confirm('确定删除此对话吗？')) return;
+
+        fetch(`/ai/sessions/${sessionId}`, { method: 'DELETE' })
+            .then(res => res.json())
+            .then(() => {
+                if (currentSessionId === sessionId) {
+                    currentSessionId = null;
+                    clearChat();
+                }
+                loadSessions();
+            })
+            .catch(err => console.error('Failed to delete session:', err));
+    }
+
+    // --- Chat ---
+
+    function sendMessage(message) {
+        // If no session, create one first
+        if (!currentSessionId) {
+            fetch('/ai/sessions', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({title: '新对话'}),
+            })
+                .then(res => res.json())
+                .then(sessionData => {
+                    currentSessionId = sessionData.id;
+                    loadSessions();
+                    doSendMessage(message, currentSessionId);
+                });
+            return;
+        }
+
+        doSendMessage(message, currentSessionId);
+    }
+
+    function doSendMessage(message, sessionId) {
+        // Show user message immediately
+        appendMessage('user', message);
+        messageInput.value = '';
+
+        // Show loading indicator
+        const loadingId = appendLoading();
+
+        // Send to server
+        fetch(`/ai/chat/${sessionId}`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({message: message}),
+        })
+            .then(res => {
+                if (!res.ok) throw new Error('请求失败');
+                return res.json();
+            })
+            .then(data => {
+                removeLoading(loadingId);
+                appendMessage('assistant', data.reply, data.chart_type, data.chart_data);
+                loadSessions(); // Refresh session list
+            })
+            .catch(err => {
+                removeLoading(loadingId);
+                appendMessage('assistant', '抱歉，处理您的请求时出现了错误，请稍后重试。');
+            });
+    }
+
+    function appendMessage(role, content, chartType, chartData) {
+        // Hide welcome message
+        if (welcomeMessage) welcomeMessage.style.display = 'none';
+
+        const msgDiv = document.createElement('div');
+        msgDiv.className = `ai-message ai-message-${role}`;
+
+        const bubble = document.createElement('div');
+        bubble.className = 'ai-message-bubble';
+        bubble.textContent = content;
+
+        msgDiv.appendChild(bubble);
+        messagesArea.appendChild(msgDiv);
+
+        // Render chart if applicable
+        if (chartData && chartType && role === 'assistant') {
+            renderChart(chartType, chartData);
+        }
+
+        // Scroll to bottom
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+    }
+
+    function appendLoading() {
+        if (welcomeMessage) welcomeMessage.style.display = 'none';
+
+        const id = 'loading-' + Date.now();
+        const msgDiv = document.createElement('div');
+        msgDiv.className = 'ai-message ai-message-assistant';
+        msgDiv.id = id;
+
+        msgDiv.innerHTML = '<div class="ai-message-bubble ai-loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+        messagesArea.appendChild(msgDiv);
+        messagesArea.scrollTop = messagesArea.scrollHeight;
+        return id;
+    }
+
+    function removeLoading(id) {
+        const el = document.getElementById(id);
+        if (el) el.remove();
+    }
+
+    function renderChart(chartType, chartData) {
+        // Show chart area
+        chartArea.style.display = '';
+
+        // Destroy existing chart
+        if (currentChart) {
+            currentChart.destroy();
+            currentChart = null;
+        }
+
+        // For table type, render HTML table instead
+        if (chartType === 'table') {
+            renderTable(chartData);
+            return;
+        }
+
+        const ctx = chatCanvas.getContext('2d');
+
+        const config = {
+            type: chartType,
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                label += '¥' + context.parsed.y.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                                return label;
+                            }
+                        }
+                    }
+                },
+                scales: chartType !== 'pie' ? {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return '¥' + value.toLocaleString();
+                            }
+                        }
+                    }
+                } : {}
+            }
+        };
+
+        currentChart = new Chart(ctx, config);
+    }
+
+    function renderTable(chartData) {
+        chartArea.style.display = '';
+        chartArea.innerHTML = '<div class="ai-table-container"><table class="table table-sm"><tbody></tbody></table></div>';
+        const tbody = chartArea.querySelector('tbody');
+        chartData.table.forEach(row => {
+            const tr = document.createElement('tr');
+            const isNegative = row.value < 0;
+            tr.innerHTML = `<td>${escapeHtml(row.item)}</td><td class="${isNegative ? 'text-danger fw-bold' : 'text-success fw-bold'}">¥${row.value.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+            tbody.appendChild(tr);
+        });
+    }
+
+    function clearChat() {
+        messagesArea.innerHTML = '';
+        chartArea.style.display = 'none';
+        chartArea.innerHTML = '<div class="chart-container"><canvas id="chatChart"></canvas></div>';
+
+        // Re-add welcome message
+        const welcome = document.createElement('div');
+        welcome.className = 'ai-welcome';
+        welcome.id = 'welcomeMessage';
+        welcome.innerHTML = `
+            <div class="ai-welcome-icon"><i class="bi bi-robot"></i></div>
+            <h4>你好！我是 AI 财务分析助手</h4>
+            <p>你可以问我关于收入、支出、趋势分析等问题</p>
+            <div class="quick-questions">
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月各项目收入是多少？">本月各项目收入</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="支出结构分析">支出结构分析</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="近6个月趋势">近6个月趋势</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月盈亏概况">本月盈亏概况</button>
+            </div>
+        `;
+        messagesArea.appendChild(welcome);
+
+        // Re-bind quick question buttons
+        document.querySelectorAll('.quick-question').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const question = this.dataset.question;
+                sendMessage(question);
+            });
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+})();
+</script>
+{% endblock %}

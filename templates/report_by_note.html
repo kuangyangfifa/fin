@@ -35,7 +35,7 @@
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">备注字段</label>
-                        <select class="form-select" name="note_field">
+                        <select class="form-select" name="note_field" id="note_field" onchange="toggleNote1Filter()">
                             <option value="note1" {% if note_field == 'note1' %}selected{% endif %}>项目</option>
                             <option value="note2" {% if note_field == 'note2' %}selected{% endif %}>学费/退费专用</option>
                             <option value="note3" {% if note_field == 'note3' %}selected{% endif %}>对象</option>
@@ -54,6 +54,24 @@
                         <button type="submit" class="btn btn-primary w-100">
                             <i class="bi bi-search"></i> 查询
                         </button>
+                    </div>
+                </div>
+                <!-- note1 项目二级联动过滤 -->
+                <div class="row g-3 mt-2" id="note1_filter_row" style="display: none;">
+                    <div class="col-md-3">
+                        <label class="form-label">项目-一级分类</label>
+                        <select class="form-select" id="note1_parent" name="note1_parent" onchange="updateNote1Children()">
+                            <option value="">全部</option>
+                            {% for parent in note1_options.keys() %}
+                            <option value="{{ parent }}" {% if note1_parent == parent %}selected{% endif %}>{{ parent }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">项目-二级分类</label>
+                        <select class="form-select" id="note1_child" name="note1_child">
+                            <option value="">全部</option>
+                        </select>
                     </div>
                 </div>
             </form>
@@ -182,4 +200,46 @@
     </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    const note1Options = {{ note1_options|tojson }};
+    const selectedNote1Child = "{{ note1_child }}";
+
+    function toggleNote1Filter() {
+        const noteField = document.getElementById('note_field').value;
+        const filterRow = document.getElementById('note1_filter_row');
+        filterRow.style.display = noteField === 'note1' ? 'flex' : 'none';
+    }
+
+    function updateNote1Children() {
+        const parentSelect = document.getElementById('note1_parent');
+        const childSelect = document.getElementById('note1_child');
+        const selectedParent = parentSelect.value;
+
+        while (childSelect.options.length > 1) {
+            childSelect.remove(1);
+        }
+
+        if (selectedParent && note1Options[selectedParent]) {
+            note1Options[selectedParent].forEach(function(child) {
+                const option = document.createElement('option');
+                option.value = child;
+                option.textContent = child;
+                if (selectedNote1Child && child === selectedNote1Child) {
+                    option.selected = true;
+                }
+                childSelect.appendChild(option);
+            });
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleNote1Filter();
+        if (document.getElementById('note1_parent').value) {
+            updateNote1Children();
+        }
+    });
+</script>
 {% endblock %}

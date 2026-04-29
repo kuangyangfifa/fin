@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flask db migrate:*)",
+      "Bash(flask db upgrade)",
+      "Bash(python:*)"
+    ]
+  }
+}
