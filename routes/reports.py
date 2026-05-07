@@ -225,16 +225,17 @@ def report_ai_monthly():
 
 def _handle_ai_monthly_post():
     """Handle POST request for AI monthly analysis."""
-    data = request.get_json(silent=True) or {}
-    month_str = data.get('month', date.today().strftime('%Y-%m'))
-
     try:
-        year, month_num = map(int, month_str.split('-'))
-        start_date = date(year, month_num, 1)
-        _, last_day = monthrange(year, month_num)
-        end_date = date(year, month_num, last_day)
-    except (ValueError, TypeError):
-        return jsonify({'success': False, 'error': '无效的月份格式，请使用 YYYY-MM'}), 400
+        data = request.get_json(silent=True) or {}
+        month_str = data.get('month', date.today().strftime('%Y-%m'))
+
+        try:
+            year, month_num = map(int, month_str.split('-'))
+            start_date = date(year, month_num, 1)
+            _, last_day = monthrange(year, month_num)
+            end_date = date(year, month_num, last_day)
+        except (ValueError, TypeError):
+            return jsonify({'success': False, 'error': '无效的月份格式，请使用 YYYY-MM'}), 400
 
     # --- Query aggregated data for the month ---
     base_query = Transaction.query.filter(
@@ -418,6 +419,9 @@ def _handle_ai_monthly_post():
         return jsonify({'success': False, 'error': 'AI 分析请求失败，请检查 API 密钥和网络连接'}), 500
 
     return jsonify({'success': True, 'analysis': result})
+    except Exception as e:
+        current_app.logger.exception('AI monthly analysis failed')
+        return jsonify({'success': False, 'error': f'服务器内部错误: {str(e)}'}), 500
 
 
 def _fmt(v):

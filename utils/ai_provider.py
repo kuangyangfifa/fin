@@ -121,7 +121,12 @@ class DeepSeekProvider:
     """Provider for DeepSeek API (OpenAI-compatible)."""
 
     def __init__(self, api_key, base_url=None):
-        from openai import OpenAI
+        try:
+            from openai import OpenAI
+        except ImportError:
+            raise ImportError(
+                'openai 包未安装，请执行: pip install openai'
+            )
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url or 'https://api.deepseek.com',

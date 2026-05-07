@@ -106,14 +106,24 @@ function generateAnalysis() {
         body: JSON.stringify({ month: month }),
     })
     .then(function(response) {
-        return response.json().then(function(data) {
-            return { status: response.status, data: data };
+        return response.text().then(function(text) {
+            try {
+                return { status: response.status, data: JSON.parse(text), rawText: null };
+            } catch (e) {
+                return { status: response.status, data: null, rawText: text };
+            }
         });
     })
     .then(function(result) {
         document.getElementById('loadingIndicator').style.display = 'none';
         document.getElementById('analyzeBtn').disabled = false;
         document.getElementById('analyzeBtn').innerHTML = '<i class="bi bi-robot"></i> 生成 AI 分析报告';
+
+        if (!result.data) {
+            showError('服务器返回了非 JSON 响应 (HTTP ' + result.status + ')，请检查服务端日志');
+            console.error('Non-JSON response:', result.rawText);
+            return;
+        }
 
         if (!result.data.success) {
             if (result.status === 500) {
