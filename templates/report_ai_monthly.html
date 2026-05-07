@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}AI月度分析报告 - 公司账户日流水管理系统{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{{ url_for('reports.reports') }}">报表分析</a></li>
+<li class="breadcrumb-item active">AI月度分析报告</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">AI月度分析报告</h4>
+        <a href="{{ url_for('reports.reports') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> 返回
+        </a>
+    </div>
+
+    <!-- Month Selector Card -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <i class="bi bi-calendar-month"></i> 选择月份
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label">月份</label>
+                    <input type="month" class="form-control" id="monthPicker" value="{{ month }}">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-primary w-100" id="analyzeBtn" onclick="generateAnalysis()">
+                        <i class="bi bi-robot"></i> 生成 AI 分析报告
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div id="loadingIndicator" class="text-center py-5" style="display:none;">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+        <h5 class="text-muted">AI 正在分析...</h5>
+        <p class="text-muted small">正在调用 DeepSeek 智能分析引擎处理 {{ month }} 的财务数据</p>
+    </div>
+
+    <!-- Error State -->
+    <div id="errorAlert" class="alert alert-danger alert-dismissible fade show" role="alert" style="display:none;">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span id="errorMessage"></span>
+        </div>
+        <button type="button" class="btn-close" onclick="document.getElementById('errorAlert').style.display='none'"></button>
+    </div>
+
+    <!-- Empty Data State -->
+    <div id="emptyData" class="card" style="display:none;">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
+            <p class="text-muted mt-3" id="emptyMessage">该月份没有流水数据</p>
+        </div>
+    </div>
+
+    <!-- Result Display -->
+    <div id="resultArea" style="display:none;">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-file-text"></i> <span id="resultTitle"></span></span>
+                <button class="btn btn-sm btn-outline-secondary" onclick="copyAnalysis()">
+                    <i class="bi bi-clipboard"></i> 复制报告
+                </button>
+            </div>
+            <div class="card-body" id="analysisContent">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function generateAnalysis() {
+    var month = document.getElementById('monthPicker').value;
+    if (!month) {
+        showError('请选择月份');
+        return;
+    }
+
+    // Hide all result sections
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('emptyData').style.display = 'none';
+    document.getElementById('errorAlert').style.display = 'none';
+
+    // Show loading
+    document.getElementById('loadingIndicator').style.display = 'block';
+    document.getElementById('analyzeBtn').disabled = true;
+    document.getElementById('analyzeBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> 分析中...';
+
+    fetch('{{ url_for("reports.report_ai_monthly") }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ month: month }),
+    })
+    .then(function(response) {
+        return response.json().then(function(data) {
+            return { status: response.status, data: data };
+        });
+    })
+    .then(function(result) {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtn').innerHTML = '<i class="bi bi-robot"></i> 生成 AI 分析报告';
+
+        if (!result.data.success) {
+            if (result.status === 500) {
+                showError(result.data.error || '服务器内部错误');
+            } else {
+                showError(result.data.error || '请求失败');
+            }
+            return;
+        }
+
+        var analysis = result.data.analysis;
+
+        // Check if it's an empty/no-data response
+        if (analysis && analysis.indexOf('没有') !== -1 && analysis.length < 100) {
+            document.getElementById('emptyData').style.display = 'block';
+            document.getElementById('emptyMessage').textContent = analysis;
+            return;
+        }
+
+        // Display the analysis result
+        document.getElementById('resultTitle').textContent = month + ' 月度 AI 分析报告';
+        document.getElementById('analysisContent').innerHTML = formatAnalysis(analysis);
+        document.getElementById('resultArea').style.display = 'block';
+    })
+    .catch(function(err) {
+        document.getElementById('loadingIndicator').style.display = 'none';
+        document.getElementById('analyzeBtn').disabled = false;
+        document.getElementById('analyzeBtn').innerHTML = '<i class="bi bi-robot"></i> 生成 AI 分析报告';
+        showError('网络请求失败: ' + err.message);
+    });
+}
+
+function formatAnalysis(text) {
+    if (!text) return '<p class="text-muted">没有分析结果</p>';
+
+    // Escape HTML
+    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Convert markdown-style formatting to HTML
+    // Headings: ### -> h5, ## -> h4, # -> h3
+    text = text.replace(/^### (.+)$/gm, '<h5 class="mt-4 mb-3">$1</h5>');
+    text = text.replace(/^## (.+)$/gm, '<h4 class="mt-4 mb-3 text-primary">$1</h4>');
+    text = text.replace(/^# (.+)$/gm, '<h3 class="mt-4 mb-3">$1</h3>');
+
+    // Bold
+    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+
+    // Lists: - item -> bullet
+    text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
+    text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul class="mb-3">$1</ul>');
+
+    // Numbered lists: 1. item
+    text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
+
+    // Paragraphs: double newlines
+    text = text.replace(/\n\n/g, '</p><p class="mb-3">');
+
+    // Single newlines within paragraphs
+    text = text.replace(/\n/g, '<br>');
+
+    return '<p class="mb-3">' + text + '</p>';
+}
+
+function showError(message) {
+    document.getElementById('errorMessage').textContent = message;
+    document.getElementById('errorAlert').style.display = 'block';
+}
+
+function copyAnalysis() {
+    var content = document.getElementById('analysisContent');
+    var text = content.innerText || content.textContent;
+    navigator.clipboard.writeText(text).then(function() {
+        var btn = document.querySelector('.btn-outline-secondary[onclick="copyAnalysis()"]');
+        btn.innerHTML = '<i class="bi bi-check-lg"></i> 已复制';
+        setTimeout(function() {
+            btn.innerHTML = '<i class="bi bi-clipboard"></i> 复制报告';
+        }, 2000);
+    }).catch(function() {
+        alert('复制失败，请手动选择文本复制');
+    });
+}
+</script>
+{% endblock %}

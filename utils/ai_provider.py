@@ -1,4 +1,4 @@
-"""AI provider abstraction layer for Claude and Qwen (OpenAI-compatible)."""
+"""AI provider abstraction layer for Claude, Qwen and DeepSeek (OpenAI-compatible)."""
 
 import json
 from flask import current_app
@@ -117,6 +117,61 @@ class QwenProvider:
             return None
 
 
+class DeepSeekProvider:
+    """Provider for DeepSeek API (OpenAI-compatible)."""
+
+    def __init__(self, api_key, base_url=None):
+        from openai import OpenAI
+        self.client = OpenAI(
+            api_key=api_key,
+            base_url=base_url or 'https://api.deepseek.com',
+        )
+
+    def chat(self, messages, max_tokens=4096, system=None):
+        """Send a chat request to DeepSeek API.
+
+        Args:
+            messages: List of dicts with 'role' and 'content'.
+            max_tokens: Maximum tokens in response.
+            system: Optional system prompt (inserted as first message).
+
+        Returns:
+            The text content of the response, or None on error.
+        """
+        try:
+            formatted = []
+            if system:
+                formatted.append({'role': 'system', 'content': system})
+            for msg in messages:
+                formatted.append({'role': msg['role'], 'content': msg['content']})
+
+            response = self.client.chat.completions.create(
+                model='deepseek-chat',
+                messages=formatted,
+                max_tokens=max_tokens,
+            )
+            return response.choices[0].message.content
+        except Exception:
+            current_app.logger.exception('DeepSeek API call failed')
+            return None
+
+    def parse_json_response(self, response_text):
+        """Try to extract JSON from the response text."""
+        if not response_text:
+            return None
+        try:
+            return json.loads(response_text)
+        except json.JSONDecodeError:
+            start = response_text.find('{')
+            end = response_text.rfind('}')
+            if start != -1 and end != -1:
+                try:
+                    return json.loads(response_text[start:end + 1])
+                except json.JSONDecodeError:
+                    return None
+            return None
+
+
 def get_ai_provider():
     """Get the configured AI provider instance.
 
@@ -137,5 +192,12 @@ def get_ai_provider():
             return None
         base_url = current_app.config.get('QWEN_BASE_URL')
         return QwenProvider(api_key, base_url)
+
+    if provider_name == 'deepseek':
+        api_key = current_app.config.get('DEEPSEEK_API_KEY', '')
+        if not api_key:
+            return None
+        base_url = current_app.config.get('DEEPSEEK_BASE_URL')
+        return DeepSeekProvider(api_key, base_url)
 
     return None

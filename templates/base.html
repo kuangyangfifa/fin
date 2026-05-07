@@ -65,7 +65,7 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.endpoint in ['reports.reports', 'reports.report_daily', 'reports.report_monthly', 'reports.report_by_note'] %}active{% endif %}" href="{{ url_for('reports.reports') }}">
+                <a class="nav-link {% if request.endpoint in ['reports.reports', 'reports.report_daily', 'reports.report_monthly', 'reports.report_by_note', 'reports.report_ai_monthly'] %}active{% endif %}" href="{{ url_for('reports.reports') }}">
                     <i class="bi bi-graph-up"></i>
                     <span>报表分析</span>
                 </a>
