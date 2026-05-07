@@ -237,188 +237,188 @@ def _handle_ai_monthly_post():
         except (ValueError, TypeError):
             return jsonify({'success': False, 'error': '无效的月份格式，请使用 YYYY-MM'}), 400
 
-    # --- Query aggregated data for the month ---
-    base_query = Transaction.query.filter(
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    )
+        # --- Query aggregated data for the month ---
+        base_query = Transaction.query.filter(
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        )
 
-    count = base_query.count()
+        count = base_query.count()
 
-    # Monthly totals
-    income_total = base_query.with_entities(
-        db.func.coalesce(db.func.sum(Transaction.income), 0)
-    ).scalar()
+        # Monthly totals
+        income_total = base_query.with_entities(
+            db.func.coalesce(db.func.sum(Transaction.income), 0)
+        ).scalar()
 
-    expense_total = base_query.with_entities(
-        db.func.coalesce(db.func.sum(Transaction.expense), 0)
-    ).scalar()
+        expense_total = base_query.with_entities(
+            db.func.coalesce(db.func.sum(Transaction.expense), 0)
+        ).scalar()
 
-    monthly_summary = {
-        'income': float(income_total),
-        'expense': float(expense_total),
-        'net': float(income_total - expense_total),
-        'transaction_count': count,
-    }
+        monthly_summary = {
+            'income': float(income_total),
+            'expense': float(expense_total),
+            'net': float(income_total - expense_total),
+            'transaction_count': count,
+        }
 
-    # Previous month totals for comparison
-    prev_month = month_num - 1
-    prev_year = year
-    if prev_month == 0:
-        prev_month = 12
-        prev_year -= 1
-    prev_start = date(prev_year, prev_month, 1)
-    _, prev_last_day = monthrange(prev_year, prev_month)
-    prev_end = date(prev_year, prev_month, prev_last_day)
-    prev_income = db.session.query(db.func.coalesce(db.func.sum(Transaction.income), 0)).filter(
-        Transaction.date >= prev_start, Transaction.date <= prev_end
-    ).scalar()
-    prev_expense = db.session.query(db.func.coalesce(db.func.sum(Transaction.expense), 0)).filter(
-        Transaction.date >= prev_start, Transaction.date <= prev_end
-    ).scalar()
-    prev_summary = {
-        'income': float(prev_income),
-        'expense': float(prev_expense),
-        'net': float(prev_income - prev_expense),
-    }
+        # Previous month totals for comparison
+        prev_month = month_num - 1
+        prev_year = year
+        if prev_month == 0:
+            prev_month = 12
+            prev_year -= 1
+        prev_start = date(prev_year, prev_month, 1)
+        _, prev_last_day = monthrange(prev_year, prev_month)
+        prev_end = date(prev_year, prev_month, prev_last_day)
+        prev_income = db.session.query(db.func.coalesce(db.func.sum(Transaction.income), 0)).filter(
+            Transaction.date >= prev_start, Transaction.date <= prev_end
+        ).scalar()
+        prev_expense = db.session.query(db.func.coalesce(db.func.sum(Transaction.expense), 0)).filter(
+            Transaction.date >= prev_start, Transaction.date <= prev_end
+        ).scalar()
+        prev_summary = {
+            'income': float(prev_income),
+            'expense': float(prev_expense),
+            'net': float(prev_income - prev_expense),
+        }
 
-    # By account
-    by_account = db.session.query(
-        Account.account_name,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).join(Account, Transaction.account_id == Account.id).filter(
-        Transaction.date >= start_date,
-        Transaction.date <= end_date
-    ).group_by(Transaction.account_id).all()
+        # By account
+        by_account = db.session.query(
+            Account.account_name,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).join(Account, Transaction.account_id == Account.id).filter(
+            Transaction.date >= start_date,
+            Transaction.date <= end_date
+        ).group_by(Transaction.account_id).all()
 
-    accounts_data = []
-    for name, inc, exp in by_account:
-        accounts_data.append({
-            'name': name,
-            'income': float(inc),
-            'expense': float(exp),
-            'net': float(inc - exp),
-        })
-
-    # By note1 (project)
-    by_note1 = base_query.with_entities(
-        Transaction.note1,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).group_by(Transaction.note1).all()
-
-    note1_data = []
-    for val, inc, exp in by_note1:
-        if val:
-            note1_data.append({
-                'value': val,
+        accounts_data = []
+        for name, inc, exp in by_account:
+            accounts_data.append({
+                'name': name,
                 'income': float(inc),
                 'expense': float(exp),
                 'net': float(inc - exp),
             })
 
-    # By note2
-    by_note2 = base_query.with_entities(
-        Transaction.note2,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).group_by(Transaction.note2).all()
+        # By note1 (project)
+        by_note1 = base_query.with_entities(
+            Transaction.note1,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).group_by(Transaction.note1).all()
 
-    note2_data = []
-    for val, inc, exp in by_note2:
-        if val:
-            note2_data.append({
-                'value': val,
-                'income': float(inc),
-                'expense': float(exp),
-                'net': float(inc - exp),
-                'total': float(inc + exp),
-            })
+        note1_data = []
+        for val, inc, exp in by_note1:
+            if val:
+                note1_data.append({
+                    'value': val,
+                    'income': float(inc),
+                    'expense': float(exp),
+                    'net': float(inc - exp),
+                })
 
-    # By note3
-    by_note3 = base_query.with_entities(
-        Transaction.note3,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).group_by(Transaction.note3).all()
+        # By note2
+        by_note2 = base_query.with_entities(
+            Transaction.note2,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).group_by(Transaction.note2).all()
 
-    note3_data = []
-    for val, inc, exp in by_note3:
-        if val:
-            note3_data.append({
-                'value': val,
-                'income': float(inc),
-                'expense': float(exp),
-                'net': float(inc - exp),
-            })
+        note2_data = []
+        for val, inc, exp in by_note2:
+            if val:
+                note2_data.append({
+                    'value': val,
+                    'income': float(inc),
+                    'expense': float(exp),
+                    'net': float(inc - exp),
+                    'total': float(inc + exp),
+                })
 
-    # By note4
-    by_note4 = base_query.with_entities(
-        Transaction.note4,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).group_by(Transaction.note4).all()
+        # By note3
+        by_note3 = base_query.with_entities(
+            Transaction.note3,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).group_by(Transaction.note3).all()
 
-    note4_data = []
-    for val, inc, exp in by_note4:
-        if val:
-            note4_data.append({
-                'value': val,
-                'income': float(inc),
-                'expense': float(exp),
-                'net': float(inc - exp),
-            })
+        note3_data = []
+        for val, inc, exp in by_note3:
+            if val:
+                note3_data.append({
+                    'value': val,
+                    'income': float(inc),
+                    'expense': float(exp),
+                    'net': float(inc - exp),
+                })
 
-    # By note5
-    by_note5 = base_query.with_entities(
-        Transaction.note5,
-        db.func.coalesce(db.func.sum(Transaction.income), 0),
-        db.func.coalesce(db.func.sum(Transaction.expense), 0),
-    ).group_by(Transaction.note5).all()
+        # By note4
+        by_note4 = base_query.with_entities(
+            Transaction.note4,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).group_by(Transaction.note4).all()
 
-    note5_data = []
-    for val, inc, exp in by_note5:
-        if val:
-            note5_data.append({
-                'value': val,
-                'income': float(inc),
-                'expense': float(exp),
-                'net': float(inc - exp),
-            })
+        note4_data = []
+        for val, inc, exp in by_note4:
+            if val:
+                note4_data.append({
+                    'value': val,
+                    'income': float(inc),
+                    'expense': float(exp),
+                    'net': float(inc - exp),
+                })
 
-    # --- Build the analysis prompt ---
-    prompt = _build_analysis_prompt(
-        month_str, monthly_summary, prev_summary,
-        accounts_data, note1_data,
-        note2_data, note3_data, note4_data, note5_data,
-    )
+        # By note5
+        by_note5 = base_query.with_entities(
+            Transaction.note5,
+            db.func.coalesce(db.func.sum(Transaction.income), 0),
+            db.func.coalesce(db.func.sum(Transaction.expense), 0),
+        ).group_by(Transaction.note5).all()
 
-    # --- Call DeepSeek ---
-    api_key = current_app.config.get('DEEPSEEK_API_KEY', '') or os.environ.get('DEEPSEEK_API_KEY', '')
-    if not api_key:
-        return jsonify({'success': False, 'error': 'DeepSeek API 密钥未配置'}), 500
+        note5_data = []
+        for val, inc, exp in by_note5:
+            if val:
+                note5_data.append({
+                    'value': val,
+                    'income': float(inc),
+                    'expense': float(exp),
+                    'net': float(inc - exp),
+                })
 
-    base_url = current_app.config.get('DEEPSEEK_BASE_URL', '') or os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
-    provider = DeepSeekProvider(api_key, base_url)
+        # --- Build the analysis prompt ---
+        prompt = _build_analysis_prompt(
+            month_str, monthly_summary, prev_summary,
+            accounts_data, note1_data,
+            note2_data, note3_data, note4_data, note5_data,
+        )
 
-    system_prompt = (
-        '你是一位资深财务分析师和企业经营顾问。'
-        '请根据提供的月度财务数据，从公司经营者和老板的视角进行全面分析。'
-        '使用专业但易懂的中文，注重数据洞察和 actionable 建议。'
-        '请用清晰的章节结构呈现分析结果。'
-    )
+        # --- Call DeepSeek ---
+        api_key = current_app.config.get('DEEPSEEK_API_KEY', '') or os.environ.get('DEEPSEEK_API_KEY', '')
+        if not api_key:
+            return jsonify({'success': False, 'error': 'DeepSeek API 密钥未配置'}), 500
 
-    result = provider.chat(
-        messages=[{'role': 'user', 'content': prompt}],
-        max_tokens=4096,
-        system=system_prompt,
-    )
+        base_url = current_app.config.get('DEEPSEEK_BASE_URL', '') or os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+        provider = DeepSeekProvider(api_key, base_url)
 
-    if not result:
-        return jsonify({'success': False, 'error': 'AI 分析请求失败，请检查 API 密钥和网络连接'}), 500
+        system_prompt = (
+            '你是一位资深财务分析师和企业经营顾问。'
+            '请根据提供的月度财务数据，从公司经营者和老板的视角进行全面分析。'
+            '使用专业但易懂的中文，注重数据洞察和 actionable 建议。'
+            '请用清晰的章节结构呈现分析结果。'
+        )
 
-    return jsonify({'success': True, 'analysis': result})
+        result = provider.chat(
+            messages=[{'role': 'user', 'content': prompt}],
+            max_tokens=4096,
+            system=system_prompt,
+        )
+
+        if not result:
+            return jsonify({'success': False, 'error': 'AI 分析请求失败，请检查 API 密钥和网络连接'}), 500
+
+        return jsonify({'success': True, 'analysis': result})
     except Exception as e:
         current_app.logger.exception('AI monthly analysis failed')
         return jsonify({'success': False, 'error': f'服务器内部错误: {str(e)}'}), 500
