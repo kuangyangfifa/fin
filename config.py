@@ -7,7 +7,12 @@ class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
 
     # Database configuration - SQLite for development, PostgreSQL for production
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///finance_web.db'
+    _db_url = os.environ.get('DATABASE_URL') or 'sqlite:///finance_web.db'
+    SQLALCHEMY_DATABASE_URI = _db_url
+    # SQLite 为整库写锁：多 worker 并发写时给足等待时间，避免 database is locked。
+    # 切换 PostgreSQL 后不要传 connect_args。
+    if _db_url.startswith('sqlite'):
+        SQLALCHEMY_ENGINE_OPTIONS = {'connect_args': {'timeout': 15}}
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
     # Session configuration

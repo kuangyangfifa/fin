@@ -1,10 +1,14 @@
 import os
+import sqlite3
 import click
 from datetime import datetime
 from dotenv import load_dotenv
 from flask import Flask
 from flask_login import LoginManager
 from flask_migrate import Migrate
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Load .env file before any config imports
 load_dotenv()
@@ -14,6 +18,21 @@ from models import db, User
 from routes import auth_bp, main_bp, accounts_bp, transactions_bp, reports_bp, settings_bp, ai_bp
 
 
+@event.listens_for(Engine, "connect")
+def _sqlite_pragmas(dbapi_conn, _record):
+    """SQLite 开启 WAL 与写锁等待，缓解多 worker 并发写冲突。
+
+    仅对 SQLite 连接生效；切换 PostgreSQL 后本监听器自然空转。
+    """
+    if isinstance(dbapi_conn, sqlite3.Connection):
+        cur = dbapi_conn.cursor()
+        try:
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA busy_timeout=15000")
+        finally:
+            cur.close()
+
+
 def create_app(config_name=None):
     """Application factory pattern."""
     if config_name is None:
@@ -21,6 +40,11 @@ def create_app(config_name=None):
 
     app = Flask(__name__)
     app.config.from_object(config[config_name])
+
+    # Nginx 反代后正确识别 https 与客户端 IP，保证 url_for 生成的外链、
+    # secure cookie 判断与微信回调地址不出错。信任 1 层代理；
+    # 若前面还有阿里云 SLB / CDN，按实际代理层数调大各值。
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
     # Initialize extensions
     db.init_app(app)

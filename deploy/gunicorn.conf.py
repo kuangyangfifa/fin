@@ -5,7 +5,9 @@
 """
 
 bind = "127.0.0.1:8000"
-workers = 4
+# SQLite 为整库写锁，worker 过多会放大 database is locked；
+# 本系统并发量低，2 个足够。切换 PostgreSQL 后可上调到 4~8。
+workers = 2
 worker_class = "sync"
 timeout = 120
 keepalive = 5

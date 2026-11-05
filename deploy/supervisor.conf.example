@@ -24,7 +24,10 @@ startretries=3
 user=www-data
 redirect_stderr=true
 stdout_logfile=/home/fin/logs/supervisor-refund.log
-environment=PORT="3000",REFUND_DATA_DIR="/home/fin/data/refund",REFUND_BASE_PATH="/refund",NODE_ENV="production"
+; 单实例约束：退费模块的写锁只在单进程内有效，numprocs 必须保持 1。
+; 不要为「提升性能」启动第二个进程或第二个副本，否则会并发覆盖 JSON 数据。
+numprocs=1
+environment=PORT="3000",REFUND_HOST="127.0.0.1",REFUND_DATA_DIR="/home/fin/data/refund",REFUND_BASE_PATH="/refund",NODE_ENV="production"
 
 [group:fin]
 programs=fin-remark,fin-refund

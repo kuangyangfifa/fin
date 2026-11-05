@@ -68,8 +68,17 @@ else
   echo "[4/6] 退费模块配置已存在，跳过"
 fi
 
-# 5. 权限与重启
-echo "[5/6] 调整权限并重启服务..."
+# 5. 部署前数据快照、权限与重启
+echo "[5/6] 数据快照、权限与重启..."
+# 每次重启前留一份可回滚的数据快照，保留最近 10 份（finance.db + 退费 JSON/附件）
+if [ -f "$DATA_DIR/finance.db" ] || [ -f "$REFUND_DATA/config.json" ]; then
+  SNAP="$DATA_DIR/backups/pre-deploy-$(date +%Y%m%d-%H%M%S).tar.gz"
+  tar -czf "$SNAP" --exclude='./backups' -C "$DATA_DIR" . 2>/dev/null \
+    || echo "   警告：数据快照生成失败，请检查 $DATA_DIR 权限"
+  ls -1t "$DATA_DIR"/backups/pre-deploy-*.tar.gz 2>/dev/null | tail -n +11 | xargs -r rm -f
+else
+  echo "   首次部署，暂无数据可备份"
+fi
 if [ "$(id -u)" = "0" ]; then
   chown -R www-data:www-data "$DATA_DIR" "$LOGS_DIR" 2>/dev/null || true
 fi
@@ -84,13 +93,23 @@ fi
 # 6. 健康检查
 echo "[6/6] 健康检查..."
 sleep 2
+FAILED=0
 check() {
   local name="$1" url="$2"
-  if curl -fsS -o /dev/null --max-time 8 "$url"; then echo "   $name：正常"; else echo "   $name：失败（$url）"; fi
+  if curl -fsS -o /dev/null --max-time 8 "$url"; then
+    echo "   $name：正常"
+  else
+    echo "   $name：失败（$url）"
+    FAILED=1
+  fi
 }
 check "Flask 主模块" "http://127.0.0.1:8000/login"
 check "退费模块页面" "http://127.0.0.1:3000/refund/"
 check "退费模块接口" "http://127.0.0.1:3000/refund/api/auth/wechat/status"
+if [ "$FAILED" -ne 0 ]; then
+  echo "健康检查未通过：请查看 /home/fin/logs/ 与 supervisorctl status fin: ，必要时用 $DATA_DIR/backups 下最近的快照回滚。" >&2
+  exit 1
+fi
 
 echo "========== 部署完成 $(date) =========="
 echo "提示：如需修改对外地址，编辑 $REFUND_DATA/config.json 的 publicBaseUrl，或在财务后台「微信登录」面板修改，改完执行 supervisorctl restart fin-refund。"

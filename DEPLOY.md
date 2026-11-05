@@ -2,6 +2,14 @@
 
 > 本文档为 Flask 主模块单模块部署说明。**当前仓库已升级为「财务主系统 + 退费审核」双模块架构**，服务器部署请以仓库根目录的 `DEPLOY.md`（v2.0）与 `deploy/` 下的配置示例为准。
 
+> **双模块速查**（完整首次部署执行清单见仓库外根 `DEPLOY.md` v2.0 第零节）
+> - 历史数据导入必须先于 `deploy.sh`：`node refund/scripts/import-backup.js --backup <备份> --data /home/fin/data/refund --public-base-url https://域名/refund`
+> - 首次部署：`sudo env ADMIN_KEY='...' PUBLIC_BASE_URL='https://域名/refund' ./deploy/deploy.sh`；日常更新加 `SKIP_PIP=1`
+> - 服务：`sudo supervisorctl status fin:` / `sudo supervisorctl restart fin:`
+> - 配置示例：`deploy/nginx.conf.example`、`deploy/supervisor.conf.example`、`deploy/gunicorn.conf.py`
+> - 数据：`/home/fin/data`（`finance.db` + `refund/`）；每次部署前的快照在 `data/backups/pre-deploy-*.tar.gz`
+> - 退费模块写锁为进程内锁，`fin-refund` 必须保持单实例
+
 ## 一、环境要求
 
 - **Python**: 3.10+

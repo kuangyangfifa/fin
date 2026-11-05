@@ -17,6 +17,11 @@ server {
     # 退费单附件以 dataURL 提交，单请求最大 60MB，预留余量
     client_max_body_size 80m;
 
+    # certbot 签发与续期用；若使用已有证书手动配置，可删除本段
+    location ^~ /.well-known/acme-challenge/ {
+        root /var/www/html;
+    }
+
     # Flask 静态资源
     location /static {
         alias /home/fin/app/static;
@@ -53,3 +58,21 @@ server {
         proxy_read_timeout 60s;
     }
 }
+
+# ---------- HTTPS：以下二选一 ----------
+# 方案 A（推荐，Let's Encrypt 免费证书）
+#   先保持上面这份 80 配置，执行：
+#     certbot --nginx -d your-domain.com
+#   certbot 会自动新增 443 server、配置证书并把 80 跳转到 443，无需手工改本文件。
+#   微信网页授权与外部签字链接必须走 HTTPS，此步不可省略。
+#
+# 方案 B（已有阿里云或其他商业证书，手动配置）
+#   1) 把 80 server 内的 location 全部删除，仅保留：
+#        location ^~ /.well-known/acme-challenge/ { root /var/www/html; }
+#        location / { return 301 https://$host$request_uri; }
+#   2) 新增 443 server，复制上面 80 server 中的全部 location，并在 server 块内加：
+#        listen 443 ssl http2;
+#        ssl_certificate     /etc/nginx/cert/your-domain.com.pem;
+#        ssl_certificate_key /etc/nginx/cert/your-domain.com.key;
+#        ssl_protocols       TLSv1.2 TLSv1.3;
+#   3) nginx -t && systemctl reload nginx

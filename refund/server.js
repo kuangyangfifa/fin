@@ -46,7 +46,9 @@ function writeJSON(file, obj) {
   fs.renameSync(tmp, file); // 原子替换，降低并发损坏风险
 }
 
-// 写串行化：所有写操作排队执行，避免并发写同一文件导致损坏
+// 写串行化：所有写操作排队执行，避免并发写同一文件导致损坏。
+// 注意：该锁是「进程内」的，生产必须保持单实例（Supervisor numprocs=1）。
+// 起第二个进程会各自持有一把锁，仍可能互相覆盖 JSON 数据。
 let writeChain = Promise.resolve();
 function withLock(fn) {
   const run = writeChain.then(fn, fn);
@@ -1267,7 +1269,10 @@ const server = http.createServer(async (req, res) => {
     sendJSON(res, 500, { error: '服务器内部错误', detail: String(e && e.message || e) });
   }
 });
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`学校退费收款单 已启动： http://localhost:${PORT}`);
-  console.log('手机/电脑在同一网络下访问本机 IP 即可使用（如 http://<本机IP>:${PORT}）');
+// 生产默认只监听回环地址，由同机 Nginx 反代对外提供服务，不直接暴露 3000 端口。
+// 容器或跨机部署时再显式设置 REFUND_HOST=0.0.0.0。
+const HOST = process.env.REFUND_HOST || '127.0.0.1';
+server.listen(PORT, HOST, () => {
+  console.log(`学校退费收款单 已启动： http://${HOST}:${PORT}`);
+  console.log(`对外入口由 Nginx 反代提供；数据目录：${DATA_DIR}`);
 });
