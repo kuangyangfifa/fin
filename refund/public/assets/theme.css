@@ -1,0 +1,48 @@
+/* 由 deploy/sync-theme.py 生成，请勿手工修改。
+   来源：static/css/custom.css 的 :root 设计令牌。
+   本文件必须在 index.html 内联 <style> 之后加载才能生效。 */
+:root{
+  --brand:#6366f1;
+  --brand-d:#4f46e5;
+  --brand-soft:#f3f3fe;
+  --bg:#f8fafc;
+  --card:#ffffff;
+  --ink:#1e293b;
+  --muted:#64748b;
+  --line:#e2e8f0;
+  --line-2:#f1f5f9;
+  --ok:#10b981;
+  --ok-soft:#d1fae5;
+  --warn:#f59e0b;
+  --warn-soft:#fef3c7;
+  --danger:#f43f5e;
+  --danger-soft:#ffe4e6;
+  --shadow-sm:0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --shadow-md:0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.08);
+  --radius:12px;
+}
+body{
+  font-family:'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background:var(--bg);
+}
+
+/* 内联样式中硬编码的旧蓝色，统一改为财务系统同款深紫渐变与靛蓝阴影 */
+.auth-hero{background:linear-gradient(150deg,#1e1b4b 0%,#312e81 55%,#4f46e5 100%);}
+.btn.primary{background:linear-gradient(135deg,#6366f1,#818cf8);box-shadow:0 8px 18px rgba(99, 102, 241, 0.28);}
+.btn.primary:hover{box-shadow:0 10px 24px rgba(99, 102, 241, 0.38);}
+.btn.sub{background:#f3f3fe;color:#4f46e5;}
+.btn.ghost:hover{background:#f3f3fe;}
+.field-i:focus-within,textarea:focus{box-shadow:0 0 0 3px #f3f3fe;}
+.upload:hover{border-color:#6366f1;background:#f3f3fe;}
+.att-item:hover{border-color:#6366f1;background:#f3f3fe;color:#4f46e5;}
+.seg2 button.on,.seg3 button.on{color:#6366f1;}
+.tag.s1{background:#f3f3fe;color:#4f46e5;}
+.tag.s2{background:#d1fae5;color:#065f46;}
+
+/* 模块间导航：退费模块顶栏的返回入口 */
+.to-home{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#64748b;}
+.to-home:hover{color:#6366f1;border-color:#6366f1;}
+.to-home svg{width:18px;height:18px;}
+
+/* hidden 属性兜底：避免组件样式中的 display 覆盖内建隐藏行为 */
+[hidden]{display:none !important;}

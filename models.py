@@ -19,6 +19,8 @@ class User(UserMixin, db.Model):
     # Relationships
     accounts = db.relationship('Account', backref='creator', lazy='dynamic')
     transactions = db.relationship('Transaction', backref='creator', lazy='dynamic')
+    ai_chat_sessions = db.relationship('AiChatSession', backref='user', lazy='dynamic',
+                                       cascade='all, delete-orphan')
 
     def set_password(self, password):
         """Hash and set user password."""
@@ -228,3 +230,29 @@ class Transaction(db.Model):
 
         prior_balance = query.scalar() or 0
         return account.initial_balance + prior_balance
+
+
+class AiChatSession(db.Model):
+    __tablename__ = 'ai_chat_sessions'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False, index=True)
+    title = db.Column(db.String(200), nullable=False, default='新对话')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+
+    messages = db.relationship('AiChatMessage', backref='session', lazy='dynamic',
+                               cascade='all, delete-orphan')
+
+
+class AiChatMessage(db.Model):
+    __tablename__ = 'ai_chat_messages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey('ai_chat_sessions.id'), nullable=False, index=True)
+    role = db.Column(db.String(20), nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    intent_type = db.Column(db.String(50))
+    chart_type = db.Column(db.String(20))
+    chart_data_json = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)

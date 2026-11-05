@@ -8,7 +8,7 @@ from sqlalchemy import func, extract
 
 from models import db, Transaction, AiChatSession, AiChatMessage
 from utils.ai_provider import get_ai_provider
-from utils.reporting import get_last_6_months_trends
+from utils.reporting import get_last_6_months_trends, month_format
 
 # Intent type descriptions for LLM prompt
 INTENT_DESCRIPTIONS = {
@@ -170,7 +170,15 @@ def analyze_intent(query, session_id=None):
 
     # Step 1: Try LLM intent recognition
     if provider:
-        messages = [{'role': 'user', 'content': query + '\n\n' + FIELD_DESCRIPTIONS}]
+        messages = []
+        if session_id:
+            history = AiChatMessage.query.filter_by(session_id=session_id).order_by(
+                AiChatMessage.created_at.desc()
+            ).limit(8).all()
+            for msg in reversed(history):
+                if msg.role in ('user', 'assistant') and msg.content:
+                    messages.append({'role': msg.role, 'content': msg.content})
+        messages.append({'role': 'user', 'content': query + '\n\n' + FIELD_DESCRIPTIONS})
         response = provider.chat(messages, max_tokens=512, system=INTENT_SYSTEM_PROMPT)
         parsed = provider.parse_json_response(response) if response else None
         if parsed and 'intent_type' in parsed:
@@ -215,6 +223,10 @@ def analyze_intent(query, session_id=None):
     return {
         'intent_type': intent_type,
         'parameters': parameters,
+        'resolved_date_range': {
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None,
+        },
         'chart_type': chart_type,
         'chart_data': chart_data,
         'reply_text': reply_text,
@@ -234,7 +246,7 @@ def execute_query(intent_type, start_date=None, end_date=None):
     if end_date:
         date_filters.append(Transaction.date <= end_date)
 
-    base_query = db.session.query()
+    base_query = Transaction.query
     if date_filters:
         base_query = base_query.filter(*date_filters)
 
@@ -243,7 +255,7 @@ def execute_query(intent_type, start_date=None, end_date=None):
     elif intent_type == 'expense_structure':
         return _query_expense_structure(base_query)
     elif intent_type == 'trend':
-        return _query_trend()
+        return _query_trend(start_date, end_date)
     elif intent_type == 'profit_loss':
         return _query_profit_loss(base_query)
     else:
@@ -261,9 +273,17 @@ def _query_project_income(query):
         Transaction.note1 != '',
     ).group_by(Transaction.note1).order_by(func.sum(Transaction.income).desc()).all()
 
-    labels = [r[0] for r in results if r[0]]
-    incomes = [float(r[1] or 0) for r in results if r[0]]
-    expenses = [float(r[2] or 0) for r in results if r[0]]
+    rows = [(r[0], float(r[1] or 0), float(r[2] or 0)) for r in results if r[0]]
+    top_n = 20
+    top_rows = rows[:top_n]
+    other_rows = rows[top_n:]
+    labels = [r[0] for r in top_rows]
+    incomes = [r[1] for r in top_rows]
+    expenses = [r[2] for r in top_rows]
+    if other_rows:
+        labels.append('其他')
+        incomes.append(sum(r[1] for r in other_rows))
+        expenses.append(sum(r[2] for r in other_rows))
 
     chart_data = {
         'labels': labels,
@@ -298,8 +318,15 @@ def _query_expense_structure(query):
         Transaction.expense > 0,
     ).group_by(Transaction.note2).order_by(func.sum(Transaction.expense).desc()).all()
 
-    labels = [r[0] for r in results if r[0]]
-    values = [float(r[1] or 0) for r in results if r[0]]
+    rows = [(r[0], float(r[1] or 0)) for r in results if r[0]]
+    top_n = 10
+    top_rows = rows[:top_n]
+    other_rows = rows[top_n:]
+    labels = [r[0] for r in top_rows]
+    values = [r[1] for r in top_rows]
+    if other_rows:
+        labels.append('其他')
+        values.append(sum(r[1] for r in other_rows))
 
     colors = [
         'rgba(99, 102, 241, 0.7)', 'rgba(16, 185, 129, 0.7)', 'rgba(245, 158, 11, 0.7)',
@@ -321,9 +348,23 @@ def _query_expense_structure(query):
     return 'pie', chart_data
 
 
-def _query_trend():
-    """Monthly aggregation → line chart (reuse get_last_6_months_trends)."""
-    trends = get_last_6_months_trends()
+def _query_trend(start_date=None, end_date=None):
+    """Monthly aggregation → line chart."""
+    if start_date or end_date:
+        date_filters = []
+        if start_date:
+            date_filters.append(Transaction.date >= start_date)
+        if end_date:
+            date_filters.append(Transaction.date <= end_date)
+        month_expr = month_format(Transaction.date).label('month')
+        rows = db.session.query(
+            month_expr,
+            func.coalesce(func.sum(Transaction.income), 0),
+            func.coalesce(func.sum(Transaction.expense), 0),
+        ).filter(*date_filters).group_by(month_expr).order_by(month_expr).all()
+        trends = [{'month': r[0], 'income': float(r[1] or 0), 'expense': float(r[2] or 0)} for r in rows]
+    else:
+        trends = get_last_6_months_trends()
 
     labels = [t['month'] for t in trends]
     incomes = [t['income'] for t in trends]

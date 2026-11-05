@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>乐学岛 · 退费收款单</title>
+<link rel="icon" type="image/png" href="assets/logo-full.png" />
+<link rel="apple-touch-icon" href="assets/logo-full.png" />
+<meta name="theme-color" content="#4f46e5" />
+<style>
+  :root{
+    --brand:#2b6cff; --brand-d:#1d54d6; --brand-soft:#eaf1ff;
+    --bg:#f3f5f9; --card:#ffffff; --ink:#1a2233; --muted:#8a94a6;
+    --line:#e8ecf3; --line-2:#f0f3f8;
+    --ok:#15b86a; --ok-soft:#e7f8ef;
+    --warn:#f5a623; --warn-soft:#fff4e0;
+    --danger:#ff4d4f; --danger-soft:#ffecec;
+    --shadow-sm:0 2px 8px rgba(20,40,90,.06);
+    --shadow-md:0 10px 30px rgba(20,40,90,.10);
+    --radius:16px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    background:var(--bg); color:var(--ink); font-size:15px; line-height:1.55;
+    -webkit-text-size-adjust:100%; -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--brand);text-decoration:none;}
+  img{max-width:100%;}
+
+  /* 应用外壳：移动优先，桌面下居中模拟手机视图 */
+  #app{ max-width:480px; margin:0 auto; min-height:100vh; background:var(--bg); position:relative; overflow-x:hidden; }
+  #app.admin{ max-width:860px; background:#f3f5f9; }
+  @media (min-width:600px){
+    #app{ box-shadow:0 0 0 1px var(--line), 0 24px 70px rgba(20,40,90,.14); }
+  }
+
+  .topbar{
+    position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:saturate(1.4) blur(8px);
+    border-bottom:1px solid var(--line); display:flex;align-items:center;justify-content:space-between;
+    padding:11px 16px;gap:10px;
+  }
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;min-width:0;}
+  .brand .logo-img{height:30px;width:auto;flex:0 0 auto;display:block;}
+  .brand .vline{width:1px;height:17px;background:#dfe5ef;flex:0 0 auto;}
+  .brand .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;
+    color:#5a6577;letter-spacing:.3px;}
+  .top-right{display:flex;align-items:center;gap:8px;flex:0 0 auto;}
+  .who{display:flex;align-items:center;gap:8px;}
+  .who .avatar{width:32px;height:32px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    font-weight:700;display:flex;align-items:center;justify-content:center;font-size:14px;}
+  .who .who-name{font-size:13px;color:var(--muted);}
+  .icon-btn{width:36px;height:36px;border:1px solid var(--line);background:#fff;border-radius:10px;
+    display:flex;align-items:center;justify-content:center;color:var(--muted);cursor:pointer;}
+  .icon-btn svg{width:18px;height:18px;}
+  .icon-btn:hover{color:var(--brand);border-color:var(--brand);}
+
+  .wrap{padding:16px 16px 80px;}
+
+  /* 卡片 */
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow-sm);padding:16px;margin-bottom:14px;}
+  .card h2{margin:0 0 4px;font-size:18px;font-weight:700;}
+  .card .sub{color:var(--muted);font-size:13px;margin:0 0 14px;}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;}
+  .title-row h2{margin:0;}
+
+  /* 通用按钮 */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font:inherit;font-weight:600;
+    border:1px solid transparent;border-radius:12px;padding:13px 18px;cursor:pointer;min-height:46px;
+    transition:transform .06s ease, background .15s, box-shadow .15s;user-select:none;}
+  .btn svg{width:18px;height:18px;}
+  .btn:active{transform:translateY(1px);}
+  .btn.primary{background:linear-gradient(135deg,var(--brand),#4f86ff);color:#fff;box-shadow:0 8px 18px rgba(43,108,255,.32);}
+  .btn.primary:hover{box-shadow:0 10px 24px rgba(43,108,255,.42);}
+  .btn.ghost{background:#fff;color:var(--brand);border-color:var(--line);}
+  .btn.ghost:hover{background:var(--brand-soft);}
+  .btn.sub{background:var(--brand-soft);color:var(--brand);}
+  .btn.ok{background:linear-gradient(135deg,var(--ok),#1fcf7d);color:#fff;box-shadow:0 8px 18px rgba(21,184,106,.30);}
+  .btn.danger{background:var(--danger);color:#fff;}
+  .btn.sm{padding:9px 13px;min-height:38px;font-size:13px;border-radius:10px;}
+  .btn.block{width:100%;}
+  .btn:disabled{opacity:.55;cursor:not-allowed;box-shadow:none;}
+
+  .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+  .row.end{justify-content:flex-end;}
+  .row.between{justify-content:space-between;}
+  .spacer{flex:1;}
+  .muted{color:var(--muted);}
+  .tiny{font-size:12px;}
+  .center{text-align:center;}
+
+  /* 标签 / 状态 */
+  .tag{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+  .tag::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;}
+  .tag.s0{background:var(--warn-soft);color:#b97800;}
+  .tag.s1{background:var(--brand-soft);color:var(--brand-d);}
+  .tag.s2{background:var(--ok-soft);color:#0e8a4f;}
+  .tag.s3{background:#eef0f3;color:#6b7280;}
+
+  /* 登录页 */
+  .auth-hero{background:linear-gradient(150deg,#2b6cff 0%,#5a8bff 55%,#7aa0ff 100%);
+    padding:54px 22px 64px;text-align:center;color:#fff;position:relative;overflow:hidden;}
+  .auth-hero::after{content:"";position:absolute;right:-50px;top:-50px;width:180px;height:180px;border-radius:50%;
+    background:rgba(255,255,255,.12);}
+  .auth-hero::before{content:"";position:absolute;left:-40px;bottom:-60px;width:150px;height:150px;border-radius:50%;
+    background:rgba(255,255,255,.08);}
+  .auth-hero .mark{width:64px;height:64px;margin:0 auto 16px;border-radius:18px;background:rgba(255,255,255,.18);
+    backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.12);}
+  .auth-hero .mark svg{width:34px;height:34px;color:#fff;}
+  /* 品牌标识：白底承托，保证彩色 logo 在渐变背景上清晰 */
+  .brand-plate{display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:14px;
+    padding:11px 18px;margin:0 auto 16px;box-shadow:0 10px 26px rgba(9,30,80,.20);}
+  .brand-plate img{display:block;height:40px;width:auto;}
+  .auth-hero h1{margin:0;font-size:23px;font-weight:800;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.12);}
+  .auth-hero p{margin:8px 0 0;font-size:13px;opacity:.92;}
+
+  .auth-card{background:#fff;border-radius:20px;box-shadow:var(--shadow-md);padding:20px 18px 18px;
+    margin:-38px 16px 0;position:relative;z-index:2;}
+  .seg2{display:flex;background:#eef1f7;border-radius:12px;padding:4px;gap:4px;margin-bottom:18px;}
+  .seg2 button{flex:1;border:none;background:transparent;padding:10px;margin:0;border-radius:9px;font-weight:700;
+    color:var(--muted);cursor:pointer;font-size:14px;transition:all .15s;}
+  .seg2 button.on{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(20,40,90,.12);}
+
+  /* 输入框（带前置图标） */
+  .field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px;}
+  .field > label{font-size:13px;color:#5a6577;font-weight:600;}
+  .field .req{color:var(--danger);margin-left:2px;}
+  .field .opt{color:#8a94a6;font-weight:500;font-size:12px;margin-left:6px;}
+  .warn-tx{color:var(--warn);font-weight:600;}
+  .upload{display:flex;align-items:center;gap:12px;border:1px dashed #c3cfe6;border-radius:12px;
+    padding:12px 14px;background:#fbfcfe;cursor:pointer;transition:border-color .15s, background .15s;}
+  .upload:hover{border-color:var(--brand);background:var(--brand-soft);}
+  .upload .up-ico{width:30px;height:30px;flex:0 0 auto;border-radius:8px;background:var(--brand-soft);
+    color:var(--brand);display:flex;align-items:center;justify-content:center;font-size:19px;font-weight:600;}
+  .upload .up-tx{display:flex;flex-direction:column;line-height:1.45;min-width:0;}
+  .upload .up-tx b{font-size:13px;color:var(--ink);}
+  .upload .up-tx i{font-style:normal;font-size:12px;color:#8a94a6;}
+  .thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:10px;margin-top:10px;}
+  .thumb{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff;}
+  .thumb img{width:100%;height:78px;object-fit:cover;display:block;}
+  .thumb .pdf{height:78px;display:flex;align-items:center;justify-content:center;
+    font-size:12px;font-weight:700;color:#c0392b;background:#fdf0ee;}
+  .thumb .del{position:absolute;top:3px;right:3px;width:20px;height:20px;border-radius:50%;border:none;
+    background:rgba(0,0,0,.55);color:#fff;font-size:13px;line-height:1;cursor:pointer;padding:0;}
+  .thumb .fn{font-size:11px;color:#6b7789;padding:4px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .att-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+  .att-item{display:flex;align-items:center;gap:8px;border:1px solid var(--line);background:#fbfcfe;
+    border-radius:10px;padding:8px 10px;font-size:12px;color:#41506b;cursor:pointer;max-width:230px;}
+  .att-item:hover{border-color:var(--brand);background:var(--brand-soft);color:var(--brand-d);}
+  .att-item .ico{width:16px;height:16px;flex:0 0 auto;display:flex;color:var(--brand);}
+  .att-item .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .att-item .sz{color:#9aa4b5;flex:0 0 auto;}
+  .attach-wrap{border-top:1px dashed var(--line);margin-top:10px;padding-top:10px;}
+  .attach-wrap .hd{font-size:12px;color:#8a94a6;margin-bottom:2px;}
+  .viewer{position:fixed;inset:0;background:rgba(12,20,36,.86);display:flex;align-items:center;justify-content:center;
+    z-index:90;padding:18px;}
+  .viewer img{max-width:100%;max-height:88vh;border-radius:10px;box-shadow:0 18px 50px rgba(0,0,0,.4);background:#fff;}
+  .viewer iframe{width:min(900px,100%);height:86vh;border:none;border-radius:10px;background:#fff;}
+  .viewer .vx{position:absolute;top:14px;right:16px;width:38px;height:38px;border-radius:50%;border:none;
+    background:rgba(255,255,255,.16);color:#fff;font-size:22px;line-height:1;cursor:pointer;}
+  .viewer .vt{position:absolute;bottom:14px;left:0;right:0;text-align:center;color:rgba(255,255,255,.72);font-size:12px;}
+  .field-i{display:flex;align-items:center;gap:10px;border:1px solid var(--line);border-radius:12px;
+    padding:0 12px;background:#fbfcfe;transition:border-color .15s, box-shadow .15s;}
+  .field-i:focus-within{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff;}
+  .field-i .fi{width:20px;height:20px;color:var(--muted);flex:0 0 auto;display:flex;}
+  .field-i .fi svg{width:19px;height:19px;}
+  .field-i input,.field-i select{flex:1;border:none;outline:none;background:transparent;font:inherit;color:var(--ink);
+    padding:13px 0;min-width:0;}
+  .field-i.amount{background:var(--danger-soft);border-color:#ffd6d6;}
+  .field-i.amount:focus-within{background:#fff;border-color:var(--danger);box-shadow:0 0 0 3px #ffe0e0;}
+  .field-i.amount .fi{color:var(--danger);}
+  .field-i.amount input{font-weight:800;font-size:17px;color:var(--danger);}
+  select{appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238a94a6' stroke-width='2'><path d='M6 9l6 6 6-6'/></svg>");
+    background-repeat:no-repeat;background-position:right 4px center;padding-right:22px;}
+  textarea{font:inherit;color:var(--ink);background:#fbfcfe;border:1px solid var(--line);border-radius:12px;
+    padding:12px;width:100%;outline:none;resize:vertical;min-height:74px;transition:border-color .15s,box-shadow .15s;}
+  textarea:focus{border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft);background:#fff;}
+
+  .auth-foot{text-align:center;margin-top:16px;font-size:13px;color:var(--muted);}
+  .auth-foot a{font-weight:600;}
+
+  /* 登录方式切换（多分段） */
+  .seg3{display:grid;grid-template-columns:repeat(3,1fr);background:#eef1f7;border-radius:12px;padding:4px;gap:4px;margin-bottom:18px;}
+  .seg3 button{border:none;background:transparent;padding:9px 2px;margin:0;border-radius:9px;font-weight:700;
+    color:var(--muted);cursor:pointer;font-size:13px;transition:all .15s;white-space:nowrap;}
+  .seg3 button.on{background:#fff;color:var(--brand);box-shadow:0 2px 8px rgba(20,40,90,.12);}
+  .btn.wx{background:linear-gradient(135deg,#07C160,#12b95d);color:#fff;box-shadow:0 8px 20px rgba(7,193,96,.30);}
+  .btn.wx:hover{box-shadow:0 10px 26px rgba(7,193,96,.42);}
+  .btn.wx svg{width:20px;height:20px;}
+  .wx-hero{display:flex;flex-direction:column;align-items:center;padding:4px 0 0;}
+  .wx-hero .wx-badge{width:58px;height:58px;border-radius:18px;background:linear-gradient(135deg,#07C160,#12b95d);
+    color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 10px 22px rgba(7,193,96,.28);margin-bottom:12px;}
+  .wx-hero .wx-badge svg{width:32px;height:32px;}
+  .divider{display:flex;align-items:center;gap:10px;color:var(--muted);font-size:12.5px;margin:16px 0;}
+  .divider:before,.divider:after{content:"";flex:1;height:1px;background:var(--line);}
+  .hint-line{font-size:12.5px;color:var(--muted);line-height:1.65;margin-top:10px;text-align:center;}
+  .link-btn{background:none;border:none;color:var(--brand);font:inherit;font-weight:700;cursor:pointer;padding:0;}
+  .name-setup{text-align:center;}
+  .name-setup .ico{width:56px;height:56px;border-radius:50%;background:var(--brand-soft);color:var(--brand);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;}
+  .name-setup h2{margin:0 0 6px;font-size:19px;}
+  .set-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px dashed var(--line);}
+  .set-row:last-child{border-bottom:none;}
+  .set-row .t{font-weight:700;font-size:14px;}
+  .set-row .d{font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6;}
+  .sw{position:relative;width:46px;height:26px;flex:0 0 auto;border-radius:99px;background:#d7dce6;border:none;cursor:pointer;transition:background .18s;margin-top:2px;}
+  .sw:after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:transform .18s;}
+  .sw.on{background:var(--ok);}
+  .sw.on:after{transform:translateX(20px);}
+  .code{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12.5px;background:#f4f6fb;border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;word-break:break-all;color:#334;margin-top:8px;}
+
+  /* 工作台 */
+  .welcome{margin-bottom:14px;}
+  .welcome h2{font-size:20px;margin:0 0 2px;font-weight:800;}
+  .welcome p{margin:0;color:var(--muted);font-size:13px;}
+  .stat-strip{display:flex;gap:10px;margin:14px 0;}
+  .stat-strip .pill{flex:1;background:#fff;border:1px solid var(--line);border-radius:13px;padding:11px 12px;box-shadow:var(--shadow-sm);}
+  .stat-strip .pill .n{font-size:20px;font-weight:800;line-height:1.1;}
+  .stat-strip .pill .l{font-size:11px;color:var(--muted);margin-top:2px;}
+  .stat-strip .pill.todo .n{color:var(--warn);}
+  .stat-strip .pill.done .n{color:var(--ok);}
+
+  /* 列表项（卡片式，左侧状态色条） */
+  .list{display:flex;flex-direction:column;gap:12px;}
+  .item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px 12px 13px 14px;
+    display:flex;gap:12px;align-items:center;box-shadow:var(--shadow-sm);cursor:pointer;transition:box-shadow .15s,transform .06s;}
+  .item:active{transform:scale(.992);}
+  .item:hover{box-shadow:var(--shadow-md);}
+  .item .bar{width:4px;align-self:stretch;border-radius:4px;background:var(--brand);flex:0 0 auto;}
+  .item .bar.s0{background:var(--warn);} .item .bar.s1{background:var(--brand);} .item .bar.s2{background:var(--ok);} .item .bar.s3{background:#b6bcc6;}
+  .item .main{flex:1;min-width:0;}
+  .item .name{font-weight:700;font-size:15.5px;display:flex;align-items:center;gap:8px;}
+  .item .name .cls{font-size:12px;color:var(--muted);font-weight:500;}
+  .item .meta{font-size:12px;color:var(--muted);margin-top:3px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .item .amt{color:var(--danger);font-weight:700;}
+  .item .acts{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;}
+  .item .acts .btn.sm{flex:1 1 0;min-width:0;padding-left:10px;padding-right:10px;}
+  .item .acts .btn.full{flex:1 0 100%;}
+  .btn.danger-text{background:#fff;color:#e5484d;border-color:#ffd9d9;}
+  .btn.danger-text:hover{background:#fff4f4;border-color:#ffb4b4;}
+  .del-box{display:flex;gap:12px;align-items:flex-start;background:#fff7f7;border:1px solid #ffdbdb;
+    border-radius:12px;padding:12px;margin:2px 0 4px;}
+  .del-box .ic{flex:0 0 auto;width:38px;height:38px;border-radius:50%;background:#ffe6e6;color:#e5484d;
+    display:flex;align-items:center;justify-content:center;}
+  .del-box .ic svg{width:20px;height:20px;}
+  .del-box b{display:block;font-size:14px;color:#b42318;margin-bottom:3px;}
+  .del-box p{margin:0;font-size:12.5px;color:#8b5a56;line-height:1.6;}
+  .item .chev{flex:0 0 auto;color:#c4ccd8;display:flex;}
+  .item .chev svg{width:20px;height:20px;}
+
+  .empty{text-align:center;color:var(--muted);padding:46px 14px;}
+  .empty svg{width:46px;height:46px;color:#cdd5e1;margin-bottom:10px;}
+  .empty .t{font-size:15px;font-weight:600;color:#6a7488;}
+  .empty .d{font-size:13px;margin-top:4px;}
+
+  /* 弹窗 */
+  .mask{position:fixed;inset:0;background:rgba(15,22,40,.55);z-index:50;display:flex;align-items:flex-end;justify-content:center;
+    padding:0;}
+  .modal{background:#fff;border-radius:22px 22px 0 0;width:100%;max-width:560px;max-height:94vh;overflow:auto;
+    padding:20px 18px calc(20px + env(safe-area-inset-bottom));position:relative;animation:slideUp .25s ease;
+    -webkit-overflow-scrolling:touch;}
+  @keyframes slideUp{from{transform:translateY(20px);opacity:.6;}to{transform:translateY(0);opacity:1;}}
+  @media (min-width:600px){ .mask{align-items:center;padding:18px;} .modal{border-radius:20px;} }
+  .modal .m-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .modal .m-head h3{margin:0;font-size:18px;font-weight:800;}
+  .m-head h3 svg{width:20px;height:20px;vertical-align:-4px;color:var(--brand);}
+  .card .m-head{margin-bottom:6px;}
+  .modal .x{width:34px;height:34px;border:none;background:#f2f4f8;border-radius:50%;font-size:20px;cursor:pointer;
+    color:var(--muted);display:flex;align-items:center;justify-content:center;}
+  .modal .x:hover{background:#e7eaf0;color:var(--ink);}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .field.col2{grid-column:1 / -1;}
+  .modal .acts{display:flex;gap:10px;margin-top:18px;}
+  .modal .acts .btn{flex:1;}
+
+  /* 链接展示框 */
+  .link-box{display:flex;align-items:center;gap:8px;border:1px dashed var(--brand);background:var(--brand-soft);
+    border-radius:12px;padding:11px 12px;font-size:13px;color:var(--brand-d);word-break:break-all;}
+
+  /* 签字页 */
+  .sign-hero{background:linear-gradient(150deg,#2b6cff,#6a97ff);color:#fff;padding:22px 18px 26px;}
+  .sign-brand{display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:11px;padding:7px 12px;
+    box-shadow:0 8px 20px rgba(9,30,80,.18);margin-bottom:14px;}
+  .sign-brand img{display:block;height:21px;width:auto;}
+  .sign-brand span{font-size:11.5px;font-weight:700;color:var(--brand);letter-spacing:.4px;white-space:nowrap;}
+  .sign-hero .ey{font-size:12px;opacity:.9;}
+  .sign-hero h1{margin:4px 0 0;font-size:20px;font-weight:800;letter-spacing:.5px;}
+  .sign-flow{display:flex;align-items:center;gap:6px;margin-top:14px;}
+  .sign-flow .step{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;}
+  .sign-flow .dot{width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.25);display:flex;
+    align-items:center;justify-content:center;font-weight:700;font-size:13px;}
+  .sign-flow .step.done .dot{background:#fff;color:var(--brand);}
+  .sign-flow .step.active .dot{background:#fff;color:var(--brand);box-shadow:0 0 0 4px rgba(255,255,255,.3);}
+  .sign-flow .line{flex:0 0 auto;width:18px;height:2px;background:rgba(255,255,255,.4);}
+
+  /* 收据（仿原单据） */
+  .receipt{border:1.5px solid #2b3346;border-radius:10px;overflow:hidden;background:#fff;margin-top:6px;}
+  .receipt .rlogo{text-align:center;padding:14px 10px 2px;}
+  .receipt .rlogo img{display:block;height:40px;width:auto;margin:0 auto;}
+  .receipt .rtitle{text-align:center;font-size:19px;font-weight:800;padding:14px 10px 4px;letter-spacing:3px;}
+  .receipt .rsub{text-align:center;color:var(--muted);font-size:12px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+  .receipt table{width:100%;border-collapse:collapse;}
+  .receipt td{border:1px solid var(--line);padding:9px 11px;font-size:13px;vertical-align:middle;}
+  .receipt .lbl{background:#f5f8ff;font-weight:600;color:#46566f;white-space:nowrap;width:78px;}
+  .receipt .amount{font-size:18px;font-weight:800;color:var(--danger);}
+  .receipt .sigcell{height:56px;text-align:center;}
+  .receipt .sigcell img{max-height:52px;max-width:92%;}
+  .receipt .sigcell .unsigned{color:#b9c0cb;font-size:12px;}
+  /* 窄屏：压缩主表信息单元格，避免 4 列表格撑破收据边框 */
+  @media (max-width:520px){
+    .receipt table.meta{table-layout:fixed;}
+    .receipt table.meta td{padding:8px 6px;font-size:12px;}
+    .receipt table.meta td:nth-child(odd){width:22%;}
+    .receipt table.meta td:nth-child(even){width:28%;}
+  }
+
+  /* 签名板 */
+  .pad-wrap{border:1.5px dashed #c3ccdb;border-radius:12px;background:#fbfcfe;position:relative;margin-top:6px;}
+  .pad{display:block;width:100%;height:170px;touch-action:none;cursor:crosshair;border-radius:12px;}
+  .pad-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#b9c0cb;font-size:13px;
+    pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .pad-hint svg{width:26px;height:26px;}
+
+  /* 财务后台 */
+  .stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+  @media (min-width:600px){ .stat-grid{grid-template-columns:repeat(5,1fr);} }
+  .kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:13px;box-shadow:var(--shadow-sm);}
+  .kpi .n{font-size:22px;font-weight:800;line-height:1.1;}
+  .kpi .l{font-size:11.5px;color:var(--muted);margin-top:3px;}
+  .kpi.total .n{color:var(--ink);} .kpi.amt .n{color:var(--danger);}
+  .kpi.ps .n{color:var(--warn);} .kpi.pk .n{color:var(--brand);} .kpi.cp .n{color:var(--ok);}
+  .filter-bar{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;align-items:center;}
+  .filter-bar .field-i{flex:1;min-width:140px;margin:0;background:#fff;}
+  .filter-bar .field-i input{padding:10px 0;}
+
+  .toast{position:fixed;left:50%;top:20px;transform:translateX(-50%);z-index:80;background:#1a2233;color:#fff;
+    padding:11px 18px;border-radius:12px;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:90%;text-align:center;}
+  .toast.err{background:var(--danger);}
+  .toast.ok{background:var(--ok);}
+
+  .only-print{display:none;}
+  @media print{
+    body{background:#fff;}
+    .topbar,.wrap>.card,.mask,.toast,.no-print,.sign-hero,.sign-flow{display:none !important;}
+    .only-print{display:block;}
+    #app{max-width:100%;box-shadow:none;}
+    .receipt{border-color:#000;page-break-inside:avoid;margin-top:0;}
+    .receipt .rlogo{padding:8px 0 0;}
+    .receipt .rlogo img{height:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .receipt .rtitle{padding:9px 10px 3px;}
+  }
+  @media (max-width:480px){
+    .grid2{grid-template-columns:1fr;}
+  }
+  /* 超窄屏：隐藏顶栏姓名（问候语已显示），保证品牌区完整 */
+  @media (max-width:380px){
+    .who .who-name{display:none;}
+  }
+
+  /* 显隐兜底：任何带 hidden 属性的元素强制不显示（必须置于样式表末尾） */
+  .link-block{margin-bottom:14px;}
+  .link-block:last-of-type{margin-bottom:0;}
+  .lb-title{font-size:13px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .link-block .btn.block{margin-top:8px;}
+  .kpi.rt .n{color:#d97706;} .kpi.rv .n{color:#6b7280;}
+  .sup-preview{margin:0 0 10px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:#fafbfc;}
+  .sup-preview .lbl{font-size:12px;color:var(--muted);margin-bottom:4px;}
+  .sup-preview img{max-width:160px;max-height:64px;}
+  /* 明细表（主表 + 多条退费明细） */
+  .sec-title{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:800;
+    color:#46566f;margin:4px 0 10px;padding-left:9px;border-left:3px solid var(--brand);line-height:1.2;}
+  .sec-title .sec-hint{font-weight:600;font-size:12px;color:var(--muted);}
+  .import-bar{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;}
+  .import-bar .btn{flex:1;min-width:120px;}
+  .rg-item{border:1px solid var(--line);border-radius:14px;background:#fbfcfe;padding:12px 12px 2px;margin-bottom:12px;}
+  .rg-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .rg-no{font-size:12.5px;font-weight:800;color:var(--brand-d);background:var(--brand-soft);
+    border-radius:20px;padding:3px 10px;}
+  .rg-del{border:none;background:transparent;color:#a3adbd;font-size:12.5px;cursor:pointer;padding:2px 4px;}
+  .rg-del:hover{color:var(--danger);}
+  .rg-item .field{margin-bottom:10px;}
+  .rg-item .field > label{font-size:12px;}
+  .rg-item .field-i input{padding:10px 0;font-size:14px;}
+  .rg-item textarea{min-height:52px;font-size:14px;padding:9px 10px;}
+  .sum-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;
+    background:var(--danger-soft);border:1px solid #ffd6d6;border-radius:12px;padding:11px 14px;
+    font-size:13px;color:#a8322f;margin:2px 0 14px;}
+  .sum-bar b{font-size:18px;font-weight:800;color:var(--danger);}
+  .field-i input[readonly]{color:#8a94a6;cursor:default;}
+  .import-tip{font-size:12px;color:var(--muted);line-height:1.65;margin:-2px 0 12px;}
+
+  /* 收据里的明细表 */
+  .receipt .tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+  .receipt .rtip{display:none;}
+  @media (max-width:520px){
+    .receipt .rtip{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;
+      padding:8px 10px;background:#fff8f8;border-top:1px solid #ffd6d6;font-size:12px;color:#a8322f;}
+    .receipt .rtip b{font-size:14px;font-weight:800;}
+    .receipt .rtip .hint{color:#98a1b0;font-size:11px;}
+  }
+  .receipt table.detail{min-width:620px;}
+  .receipt table.detail th{background:#f5f8ff;font-weight:700;color:#46566f;font-size:11.5px;
+    border:1px solid var(--line);padding:6px 5px;white-space:nowrap;text-align:center;}
+  .receipt table.detail td{font-size:11.5px;padding:6px 5px;white-space:nowrap;}
+  .receipt table.detail td.c{text-align:center;color:var(--muted);width:34px;}
+  .receipt table.detail td.num{text-align:right;}
+  .receipt table.detail td.amt{color:var(--danger);font-weight:700;}
+  .receipt table.detail td.rs{white-space:normal;min-width:96px;line-height:1.5;}
+  .receipt tfoot td{background:#fafbfe;}
+  .receipt tfoot .tr{text-align:right;font-weight:700;color:#46566f;}
+  @media print{
+    .receipt .tbl-wrap{overflow:visible;}
+    .receipt table.detail{min-width:0;}
+    .receipt table.detail th,.receipt table.detail td{font-size:9.5px;padding:4px 3px;white-space:normal;}
+  }
+
+  [hidden]{display:none !important;}
+</style>
+<!-- 与 fin-remark 主模块共享的视觉令牌覆盖层，由 deploy/sync-theme.py 生成；须置于内联样式之后 -->
+<link rel="stylesheet" href="assets/theme.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+<script>
+"use strict";
+(function(){
+  // 部署前缀：与 server.js 的 REFUND_BASE_PATH 保持一致；独立域名部署时改为空串。
+  const BASE = '/refund';
+  const API = (p,opt) => fetch(BASE+'/api'+p, Object.assign({headers:{'Content-Type':'application/json'}}, opt||{}))
+    .then(r=>r.json().then(j=>({ok:r.ok, body:j})))
+    .then(({ok,body})=>{ if(!ok) throw new Error(body.error||'请求失败'); return body; });
+
+  const state = { token:localStorage.getItem('rf_token')||'', user:null, adminKey:localStorage.getItem('rf_admin')||'' };
+
+  const ICON = {
+    receipt:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10v18l-2.5-1.7L12 21l-2.5-1.7L7 21V3z"/><path d="M10 8h4M10 12h4"/></svg>',
+    phone:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.6 10.8c1.4 2.8 3.8 5.2 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C9.6 21 3 14.4 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.3 0 .7-.2 1l-2.3 2.2z"/></svg>',
+    lock:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+    user:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.3 3.6-6 8-6s8 2.7 8 6"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    copy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>',
+    arrow:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+    doc:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h6"/></svg>',
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M10 4h4a2 2 0 0 1 2 2v1H8V6a2 2 0 0 1 2-2z"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/></svg>',
+    image:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5-6 6-3-3-4 4"/></svg>',
+    logout:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 12H4m0 0l4-4m-4 4l4 4M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/></svg>',
+    search:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>',
+    edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+    pen:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21l3-1 11-11-2-2L4 18l-1 3zM14 6l2 2"/></svg>',
+    inbox:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h5l2 3h4l2-3h5"/><path d="M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>',
+    key:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="8" r="4"/><path d="M11 11l9 9M17 17l2-2M14 14l2-2"/></svg>',
+    wechat:'<svg viewBox="0 0 24 24" fill="currentColor"><path d="M9.1 3C5 3 1.7 5.8 1.7 9.2c0 1.9 1.1 3.6 2.8 4.8l-.7 2.1 2.4-1.2c.9.3 1.9.4 2.9.4h.6a5.9 5.9 0 0 1-.2-1.5c0-3.1 3-5.6 6.7-5.6h.5C15.9 5.2 12.8 3 9.1 3Zm-2.6 3.2a1.05 1.05 0 1 1 0 2.1 1.05 1.05 0 0 1 0-2.1Zm5.1 0a1.05 1.05 0 1 1 0 2.1 1.05 1.05 0 0 1 0-2.1Z"/><path d="M22.3 13.8c0-2.8-2.7-5.1-6-5.1s-6 2.3-6 5.1 2.7 5.1 6 5.1c.7 0 1.4-.1 2-.3l2 1-.6-1.7c1.6-1 2.6-2.5 2.6-4.1Zm-8.1-1.7a.95.95 0 1 1 0 1.9.95.95 0 0 1 0-1.9Zm4.2 0a.95.95 0 1 1 0 1.9.95.95 0 0 1 0-1.9Z"/></svg>',
+  };
+
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function $(sel,root){ return (root||document).querySelector(sel); }
+  function el(tag,attrs,html){ const e=document.createElement(tag); if(attrs) for(const k in attrs){ if(k==='class') e.className=attrs[k]; else if(k==='text') e.textContent=attrs[k]; else e.setAttribute(k,attrs[k]); } if(html!=null) e.innerHTML=html; return e; }
+  function toast(msg,type){ const t=el('div',{class:'toast'+(type?' '+type:'')},esc(msg)); document.body.appendChild(t); setTimeout(()=>t.remove(),2600); }
+  function fmtTime(ts){ if(!ts) return ''; const d=new Date(ts); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`; }
+  function statusTag(s){
+    const map={pending_supervisor:['s0','待主管签字'],pending_school:['s1','待校方签字'],completed:['s2','已完成'],revoked:['s3','已撤销'],returned:['s3','已退回']};
+    const m=map[s]||['s0',s]; return `<span class="tag ${m[0]}">${m[1]}</span>`;
+  }
+  function hourCN(){ const h=new Date().getHours(); if(h<6) return '凌晨好'; if(h<12) return '上午好'; if(h<14) return '中午好'; if(h<18) return '下午好'; return '晚上好'; }
+
+  // ---------- 路由 ----------
+  function inWeChat(){ return /MicroMessenger/i.test(navigator.userAgent); }
+
+  function router(){
+    const root=$('#app'); root.innerHTML=''; root.className='';
+    const h=location.hash||'#/login';
+    const [path,qs]=h.replace(/^#/,'').split('?');
+    const params=new URLSearchParams(qs||'');
+    if(path==='/sign'){ renderSign(root, params.get('id'), params.get('token'), params.get('role')); return; }
+    if(path==='/admin'){ root.classList.add('admin'); renderAdmin(root); return; }
+    if(path==='/print'){ renderPrint(root, params.get('id')); return; }
+    if(path==='/name'){ if(!state.token){ location.hash='#/login'; return; } renderNameSetup(root); return; }
+    if(state.token){ renderApp(root); }
+    else { renderAuth(root); }
+  }
+
+  function afterLogin(r){
+    state.token=r.token; state.user=r.user; localStorage.setItem('rf_token',r.token);
+    history.replaceState(null,'', (!r.user||!r.user.name) ? '#/name' : '#/app');
+    router();
+  }
+
+  // ---------- 登录：微信 / 免注册 / 账号 ----------
+  async function renderAuth(root){
+    const info=await API('/auth/wechat/status').catch(()=>({configured:false,nameLogin:false,nameLoginNeedPhone4:true}));
+    state.wx=info;
+    const inWx=inWeChat();
+    const tabs=[];
+    if(inWx && info.configured) tabs.push({k:'wx',t:'微信登录'});
+    if(info.nameLogin) tabs.push({k:'quick',t:'免注册进入'});
+    tabs.push({k:'phone',t:'账号登录'});
+    let cur=(inWx && info.configured) ? 'wx' : ((inWx && info.nameLogin) ? 'quick' : 'phone');
+
+    const hero=el('div',{class:'auth-hero'});
+    hero.innerHTML=`<div class="brand-plate"><img src="assets/logo-full.png" alt="岳晟乐学岛"></div>
+      <h1>退费收款单</h1>
+      <p>乐学岛 · 教师端在线填写与签字</p>`;
+    root.appendChild(hero);
+
+    const card=el('div',{class:'auth-card'});
+    card.innerHTML=`<div class="seg3" id="modes"></div><div id="authBody"></div>
+      <div class="auth-foot"><a href="#/admin">财务后台入口</a></div>`;
+    root.appendChild(card);
+
+    const segBox=$('#modes',card);
+    if(tabs.length<=1){
+      segBox.hidden=true;
+    } else {
+      segBox.style.gridTemplateColumns=`repeat(${tabs.length},1fr)`;
+      tabs.forEach(t=>{
+        const b=el('button',{class:(t.k===cur?'on':'')},t.t);
+        b.onclick=()=>{
+          cur=t.k;
+          Array.prototype.forEach.call(segBox.children,c=>c.classList.remove('on'));
+          b.classList.add('on');
+          paint();
+        };
+        segBox.appendChild(b);
+      });
+    }
+    paint();
+
+    function paint(){
+      const body=$('#authBody',card);
+      if(cur==='wx') body.innerHTML=wxPanel();
+      else if(cur==='quick') body.innerHTML=quickPanel();
+      else body.innerHTML=phonePanel();
+      bindBody(body);
+    }
+
+    function wxPanel(){
+      return `<div class="wx-hero">
+          <div class="wx-badge">${ICON.wechat}</div>
+          <div style="font-weight:800;font-size:16px">微信授权登录</div>
+          <div class="hint-line" style="margin-top:5px">在微信内自动识别身份，无需注册手机号<br>首次登录只需填写您的姓名（如：张老师）</div>
+        </div>
+        <button class="btn wx block" id="wxGo" style="margin-top:16px">${ICON.wechat} 微信一键登录</button>
+        <div class="hint-line">若授权失败，可切换「免注册进入」或「账号登录」</div>`;
+    }
+
+    function quickPanel(){
+      return `<div class="field">
+          <label>我的姓名<span class="req">*</span></label>
+          <div class="field-i"><span class="fi">${ICON.user}</span><input id="qname" maxlength="20" placeholder="如：张老师"></div>
+        </div>
+        ${info.nameLoginNeedPhone4?`<div class="field">
+          <label>手机号后 4 位<span class="req">*</span></label>
+          <div class="field-i"><span class="fi">${ICON.phone}</span><input id="q4" inputmode="numeric" maxlength="4" placeholder="用于区分同名老师"></div>
+        </div>`:''}
+        <button class="btn primary block" id="qGo">${ICON.check} 进入我的工作台</button>
+        <div class="hint-line">首次进入自动创建账号，无需密码；姓名与手机尾号即身份凭证，请如实填写。</div>`;
+    }
+
+    function phonePanel(){
+      return `<div id="loginCard">
+          <div class="field"><label>手机号<span class="req">*</span></label>
+            <div class="field-i"><span class="fi">${ICON.phone}</span><input id="phone" inputmode="numeric" maxlength="11" placeholder="请输入 11 位手机号"></div></div>
+          <div class="field"><label>密码<span class="req">*</span></label>
+            <div class="field-i"><span class="fi">${ICON.lock}</span><input id="pwd" type="password" placeholder="请输入登录密码"></div></div>
+          <button class="btn primary block" id="loginBtn">${ICON.user} 登 录</button>
+          <div class="hint-line"><button class="link-btn" id="toReg">没有账号？注册新账号</button></div>
+        </div>
+        <div id="regCard" hidden>
+          <div class="field"><label>老师姓名<span class="req">*</span></label>
+            <div class="field-i"><span class="fi">${ICON.user}</span><input id="rname" maxlength="20" placeholder="如：张老师"></div></div>
+          <div class="field"><label>手机号<span class="req">*</span></label>
+            <div class="field-i"><span class="fi">${ICON.phone}</span><input id="rphone" inputmode="numeric" maxlength="11" placeholder="请输入 11 位手机号"></div></div>
+          <div class="field"><label>登录密码<span class="req">*</span></label>
+            <div class="field-i"><span class="fi">${ICON.lock}</span><input id="rpwd" type="password" placeholder="至少 6 位"></div></div>
+          <button class="btn primary block" id="regBtn">${ICON.check} 注册并登录</button>
+          <div class="hint-line"><button class="link-btn" id="toLogin">已有账号？返回登录</button></div>
+        </div>`;
+    }
+
+    function bindBody(body){
+      if(cur==='wx'){
+        const b=$('#wxGo',body);
+        if(b) b.onclick=()=>{ b.disabled=true; location.href=BASE+'/api/auth/wechat/start'; };
+        return;
+      }
+      if(cur==='quick'){
+        const b=$('#qGo',body);
+        if(!b) return;
+        b.onclick=async()=>{
+          const name=($('#qname',body).value||'').trim();
+          const p4=$('#q4',body);
+          const phone4=p4?(p4.value||'').trim():'';
+          if(!name){ toast('请填写您的姓名','err'); return; }
+          if(info.nameLoginNeedPhone4 && !/^\d{4}$/.test(phone4)){ toast('请填写手机号后 4 位','err'); return; }
+          b.disabled=true;
+          try{ const r=await API('/auth/name-login',{method:'POST',body:JSON.stringify({name,phone4})}); afterLogin(r); }
+          catch(e){ toast(e.message,'err'); b.disabled=false; }
+        };
+        return;
+      }
+      const lb=$('#loginBtn',body);
+      if(lb) lb.onclick=async()=>{
+        try{ const r=await API('/login',{method:'POST',body:JSON.stringify({phone:$('#phone',body).value,password:$('#pwd',body).value})}); afterLogin(r); }
+        catch(e){ toast(e.message,'err'); }
+      };
+      const rb=$('#regBtn',body);
+      if(rb) rb.onclick=async()=>{
+        try{ const r=await API('/register',{method:'POST',body:JSON.stringify({phone:$('#rphone',body).value,name:$('#rname',body).value,password:$('#rpwd',body).value})}); afterLogin(r); }
+        catch(e){ toast(e.message,'err'); }
+      };
+      const tr=$('#toReg',body);
+      if(tr) tr.onclick=()=>{ $('#loginCard',body).hidden=true; $('#regCard',body).hidden=false; };
+      const tl=$('#toLogin',body);
+      if(tl) tl.onclick=()=>{ $('#loginCard',body).hidden=false; $('#regCard',body).hidden=true; };
+    }
+  }
+
+  // ---------- 首次登录：设置姓名 ----------
+  function renderNameSetup(root){
+    const hero=el('div',{class:'auth-hero'});
+    hero.innerHTML=`<div class="mark">${ICON.user}</div><h1>设置您的姓名</h1><p>用于退费单署名与老师身份识别</p>`;
+    root.appendChild(hero);
+    const card=el('div',{class:'auth-card'});
+    card.innerHTML=`<div class="name-setup">
+        <div class="ico">${ICON.user}</div>
+        <h2>请填写您的姓名</h2>
+        <p class="sub" style="margin:0">将显示在退费单「老师」栏，例如：张老师</p>
+      </div>
+      <div class="field" style="margin-top:16px"><label>我的姓名<span class="req">*</span></label>
+        <div class="field-i"><span class="fi">${ICON.user}</span><input id="nm" maxlength="20" placeholder="如：张老师"></div></div>
+      <button class="btn primary block" id="ok">${ICON.check} 完成并进入</button>
+      <div class="hint-line">姓名进入后可随时修改</div>`;
+    root.appendChild(card);
+    $('#ok',card).onclick=async()=>{
+      const name=($('#nm',card).value||'').trim();
+      if(!name){ toast('请填写您的姓名','err'); return; }
+      const b=$('#ok',card); b.disabled=true;
+      try{
+        const r=await API('/me/name',{method:'POST',headers:{'x-auth-token':state.token},body:JSON.stringify({name})});
+        state.user=r.user; history.replaceState(null,'','#/app'); router();
+      }catch(e){ toast(e.message,'err'); b.disabled=false; }
+    };
+  }
+
+  // ---------- 修改姓名 ----------
+  function openRenameModal(curName){
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    modal.innerHTML=`<div class="m-head"><h3>修改姓名</h3><button class="x" aria-label="关闭">×</button></div>
+      <p class="sub" style="margin:0 0 12px">姓名显示在退费单「老师」栏与工作台问候语，如：张老师</p>
+      <div class="field"><label>我的姓名<span class="req">*</span></label>
+        <div class="field-i"><span class="fi">${ICON.user}</span><input id="rn" maxlength="20" value="${esc(curName||'')}" placeholder="如：张老师"></div></div>
+      <div class="acts"><button class="btn ghost" id="cls">取消</button><button class="btn primary" id="ok">${ICON.check} 保存</button></div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+    $('#ok',modal).onclick=async()=>{
+      const name=($('#rn',modal).value||'').trim();
+      if(!name){ toast('请填写您的姓名','err'); return; }
+      try{
+        const r=await API('/me/name',{method:'POST',headers:{'x-auth-token':state.token},body:JSON.stringify({name})});
+        state.user=r.user; close(); toast('姓名已更新','ok'); renderApp($('#app'));
+      }catch(e){ toast(e.message,'err'); }
+    };
+  }
+
+  // ---------- 老师工作台 ----------
+  async function renderApp(root){
+    const me=await API('/me',{headers:{'x-auth-token':state.token}}).catch(()=>null);
+    if(!me){ state.token='';localStorage.removeItem('rf_token'); location.hash='#/login'; return; }
+    state.user=me.user;
+    const rawName=me.user.name||'老师';
+    const shownName=/(老师|校长|主任|园长|主管|经理)$/.test(rawName)?rawName:rawName+' 老师';
+
+    const top=el('div',{class:'topbar'});
+    top.innerHTML=`<div class="brand"><img class="logo-img" src="assets/logo-full.png" alt="乐学岛"><span class="vline"></span><span class="txt">退费单</span></div>
+      <div class="top-right">
+        <a class="icon-btn to-home" href="/" title="返回财务管理系统（需内部账号）" aria-label="返回财务管理系统"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5.5 9.5V21h13V9.5"/><path d="M10 21v-6h4v6"/></svg></a>
+        <div class="who"><span class="who-name">${esc(rawName)}</span><span class="avatar">${esc(rawName.slice(0,1))}</span></div>
+        <button class="icon-btn" id="rename" title="修改姓名">${ICON.edit}</button>
+        <button class="icon-btn" id="logout" title="退出登录">${ICON.logout}</button>
+      </div>`;
+    root.appendChild(top);
+
+    const wrap=el('div',{class:'wrap'});
+    wrap.innerHTML=`
+      <div class="welcome">
+        <h2>${hourCN()}，${esc(shownName)}</h2>
+        <p>填写退费单后生成签字链接，依次转发主管、校方在线签字。</p>
+      </div>
+      <div class="title-row" style="margin-bottom:12px">
+        <h2 style="font-size:17px">我的退费单</h2>
+        <button class="btn primary sm" id="newBtn">${ICON.plus} 新建退费单</button>
+      </div>
+      <div id="listBox"></div>`;
+    root.appendChild(wrap);
+
+    $('#logout').onclick=()=>{ API('/logout',{method:'POST',headers:{'x-auth-token':state.token}}).catch(()=>{}); state.token='';localStorage.removeItem('rf_token');location.hash='#/login'; };
+    $('#rename').onclick=()=>openRenameModal(rawName);
+    $('#newBtn').onclick=()=>openFormModal();
+    loadList($('#listBox'));
+  }
+
+  async function loadList(box){
+    try{
+      const r=await API('/forms',{headers:{'x-auth-token':state.token}});
+      state.linkBase=r.linkBase||'';
+      if(!r.forms.length){
+        box.innerHTML=`<div class="empty">${ICON.inbox}<div class="t">还没有退费单</div><div class="d">点击「新建退费单」开始填写</div></div>`;
+        return;
+      }
+      const sCls={pending_supervisor:'s0',pending_school:'s1',completed:'s2',revoked:'s3',returned:'s3'};
+      box.innerHTML='<div class="list"></div>';
+      const list=box.querySelector('.list');
+      r.forms.forEach(f=>{
+        const item=el('div',{class:'item'});
+        const sc=sCls[f.status]||'s0';
+        const retInfo=(f.status==='returned')?`<div class="meta" style="color:#b45309">已退回（${esc(f.returnedBy||'')}）${f.returnReason?'：'+esc(f.returnReason):''}</div>`:'';
+        let acts='';
+        if(f.status==='pending_supervisor'){
+          acts=`<button class="btn sub sm full" data-act="cpSup" data-id="${esc(f.id)}" data-token="${esc(f.supervisorToken)}" data-role="supervisor">${ICON.copy} 复制主管链接</button>
+                <button class="btn ghost sm" data-act="revoke" data-id="${esc(f.id)}" data-status="${esc(f.status)}">撤销</button>
+                <button class="btn ghost sm" data-act="detail" data-id="${esc(f.id)}">${ICON.doc} 查看</button>
+                <button class="btn ghost sm danger-text" data-act="del" data-id="${esc(f.id)}">删除</button>`;
+        } else if(f.status==='pending_school'){
+          acts=`<button class="btn sub sm full" data-act="cpSch" data-id="${esc(f.id)}" data-token="${esc(f.schoolToken)}" data-role="school">${ICON.copy} 复制校方链接</button>
+                <button class="btn ghost sm" data-act="revoke" data-id="${esc(f.id)}" data-status="${esc(f.status)}">撤销</button>
+                <button class="btn ghost sm" data-act="detail" data-id="${esc(f.id)}">${ICON.doc} 查看</button>
+                <button class="btn ghost sm danger-text" data-act="del" data-id="${esc(f.id)}">删除</button>`;
+        } else if(f.status==='completed'){
+          acts=`<button class="btn ghost sm full" data-act="detail" data-id="${esc(f.id)}">${ICON.doc} 查看 / 打印</button>`;
+        } else {
+          acts=`<button class="btn ok sm full" data-act="resubmit" data-id="${esc(f.id)}">${ICON.check} 重新提交</button>
+                <button class="btn ghost sm" data-act="detail" data-id="${esc(f.id)}">${ICON.doc} 查看</button>
+                <button class="btn ghost sm danger-text" data-act="del" data-id="${esc(f.id)}">删除</button>`;
+        }
+        const attInfo=f.attachmentCount?` · 附件 ${f.attachmentCount}`:'';
+        const rfInfo=f.refundDate?`<div class="meta" style="color:#0e8a4f">财务已登记：${esc(f.refundMethod||'')} ${esc(f.refundDate)}</div>`:'';
+        const firstName=(f.items&&f.items[0]&&f.items[0].studentName)||'—';
+        item.innerHTML=`
+          <div class="bar ${sc}"></div>
+          <div class="main">
+            <div class="name">${esc(firstName)} ${f.itemCount>1?`<span class="cls">等 ${f.itemCount} 人</span>`:''}</div>
+            <div class="meta"><span class="amt">¥${esc(f.refundTotal)}</span> · ${f.itemCount} 条明细 · 单号 ${esc(f.id)} · ${esc(fmtTime(f.createdAt))}${attInfo}</div>
+            <div class="meta">填报人 ${esc(f.submitterName||f.ownerName||'')}</div>
+            ${retInfo}
+            ${rfInfo}
+            <div class="acts">${acts}</div>
+          </div>
+          <div class="chev">${ICON.arrow}</div>`;
+        item.querySelectorAll('[data-act="cpSup"],[data-act="cpSch"]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();copySignLink(b.dataset.id,b.dataset.token,b.dataset.role);});
+        item.querySelectorAll('[data-act="detail"]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();openDetail(b.dataset.id);});
+        item.querySelectorAll('[data-act="revoke"]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();revokeForm(b.dataset.id,b.dataset.status);});
+        item.querySelectorAll('[data-act="del"]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();openDeleteModal(b.dataset.id,`${firstName}${f.itemCount>1?' 等 '+f.itemCount+' 人':''}（${f.id}）`);});
+        item.querySelectorAll('[data-act="resubmit"]').forEach(b=>b.onclick=(e)=>{e.stopPropagation();resubmitForm(b.dataset.id);});
+        list.appendChild(item);
+      });
+    }catch(e){ box.innerHTML='<div class="empty"><div class="t">加载失败</div><div class="d">'+esc(e.message)+'</div></div>'; }
+  }
+
+  // 签字链接：沿用当前访问入口（含部署平台访问口令），保证他人可直接打开
+  function buildSignUrl(id,token,role){
+    const raw=state.linkBase || (location.origin+location.pathname+location.search);
+    const b=String(raw).replace(/#.*$/,'');
+    const sep=b.indexOf('?')>=0?'#':'/#';
+    return `${b}${sep}/sign?id=${encodeURIComponent(id)}&token=${encodeURIComponent(token)}&role=${encodeURIComponent(role)}`;
+  }
+  async function copySignLink(id,token,role){
+    const url=buildSignUrl(id,token,role);
+    try{ await navigator.clipboard.writeText(url); toast(role==='supervisor'?'主管签字链接已复制，去微信转发':'校方签字链接已复制，去微信转发','ok'); }
+    catch(e){ window.prompt('复制以下链接转发：',url); }
+  }
+  async function revokeForm(id,status){
+    const extra=status==='pending_school'
+      ? '主管已签字，撤销后该签字作废，需重新发起主管签字。'
+      : '撤销后主管/校方将无法签字，可稍后重新提交。';
+    if(!confirm('确定撤销该退费单？\n'+extra)) return;
+    try{ const r=await API('/forms/'+id+'/revoke',{method:'POST',headers:{'x-auth-token':state.token}}); toast('已撤销：'+r.statusText,'ok'); loadList($('#listBox')); }
+    catch(e){ toast(e.message,'err'); }
+  }
+  // 删除（审批完成前可删，二次确认后永久删除单据与附件）
+  function openDeleteModal(id,label){
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    modal.innerHTML=`<div class="m-head"><h3>删除退费单</h3><button class="x" aria-label="关闭">×</button></div>
+      <div class="del-box"><div class="ic">${ICON.trash}</div>
+        <div><b>删除后不可恢复</b><p>「${esc(label)}」及其全部附件将被永久删除，已发出的主管、校方签字链接同时失效。</p></div></div>
+      <div class="acts"><button class="btn ghost" id="cls">取消</button><button class="btn danger" id="ok">${ICON.trash} 确认删除</button></div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function escDel(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',escDel);} });
+    $('#ok',modal).onclick=async()=>{
+      const b=$('#ok',modal); b.disabled=true;
+      try{
+        await API('/forms/'+id,{method:'DELETE',headers:{'x-auth-token':state.token}});
+        close(); toast('退费单已删除','ok'); loadList($('#listBox'));
+      }catch(e){ toast(e.message,'err'); b.disabled=false; }
+    };
+  }
+  async function resubmitForm(id){
+    try{ const r=await API('/forms/'+id+'/resubmit',{method:'POST',headers:{'x-auth-token':state.token}}); toast('已重新提交，请重新转发签字链接','ok'); loadList($('#listBox')); }
+    catch(e){ toast(e.message,'err'); }
+  }
+
+  // ---------- 新建表单弹窗（主表 + 退费明细） ----------
+  const ITEM_FIELDS=[
+    ['studentName','学生姓名','text'],
+    ['className','所在班级','text'],
+    ['enrollDate','入校就读时间','text'],
+    ['courseName','课程名称','text'],
+    ['tuitionFee','学费（元）','decimal'],
+    ['mealFee','餐费（元）','decimal'],
+    ['refundTotal','退费总金额（元）','decimal'],
+    ['payeeName','收款户名','text'],
+  ];
+  function blankItem(){ const o={}; ITEM_FIELDS.forEach(([k])=>{o[k]='';}); o.refundReason=''; return o; }
+
+  function openFormModal(){
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    const tplHref=BASE+'/api/import/template'+(location.search||'');
+    modal.innerHTML=`
+      <div class="m-head"><h3>新建退费收款单</h3><button class="x" aria-label="关闭">×</button></div>
+
+      <div class="sec-title">主表信息</div>
+      <div class="grid2">
+        <div class="field"><label>填报人<span class="req">*</span></label>
+          <div class="field-i"><span class="fi">${ICON.user}</span><input id="f_submitter" maxlength="20" value="${esc((state.user&&state.user.name)||'')}" placeholder="默认当前登录用户"></div></div>
+        <div class="field"><label>填报时间</label>
+          <div class="field-i"><span class="fi">${ICON.doc}</span><input value="提交时自动生成" readonly></div></div>
+      </div>
+
+      <div class="sec-title" style="margin-top:6px">退费明细 <span class="sec-hint" id="itemCount">共 1 条</span></div>
+      <div class="import-bar">
+        <a class="btn ghost sm" id="tplBtn" href="${esc(tplHref)}" download>${ICON.doc} 下载模板</a>
+        <label class="btn sub sm" id="impBtn" for="impFile">${ICON.plus} 批量导入
+          <input type="file" id="impFile" accept=".csv,.xlsx,text/csv" hidden>
+        </label>
+      </div>
+      <div class="import-tip">可一次录入多名学生：下载模板按列填写后导入（支持 .csv 与 .xlsx），也可直接在下表逐行添加。模板首行为示例，导入时自动忽略。</div>
+      <div id="items"></div>
+      <button class="btn ghost block" id="addItem" style="margin-bottom:12px">${ICON.plus} 添加一行明细</button>
+      <div class="sum-bar"><span>合计（<span id="sumN">1</span> 条明细）</span><b id="sumAmt">¥0</b></div>
+
+      <div class="field col2" style="margin-top:4px">
+        <label>附件 <span class="opt">选填，可上传照片或 PDF</span></label>
+        <label class="upload" id="upBox">
+          <input type="file" id="f_files" accept="image/*,application/pdf" multiple hidden>
+          <span class="up-ico">+</span>
+          <span class="up-tx"><b>点击上传</b><i>缴费凭证、退费申请单等，最多 9 个，单个不超过 6MB</i></span>
+        </label>
+        <div class="thumbs" id="thumbs" hidden></div>
+      </div>
+      <div class="acts">
+        <button class="btn ghost" id="cancel">取消</button>
+        <button class="btn primary" id="submit">${ICON.check} 提交并生成签字链接</button>
+      </div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{ if(e.target===mask) close(); };
+    $('#cancel',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc); } });
+
+    let rows=[blankItem()];
+    let pendingAtts=[];
+    const box=$('#items',modal);
+
+    function collect(){
+      box.querySelectorAll('.rg-item').forEach(card=>{
+        const i=Number(card.dataset.i);
+        if(!rows[i]) return;
+        card.querySelectorAll('[data-k]').forEach(inp=>{ rows[i][inp.dataset.k]=inp.value; });
+      });
+    }
+    function updateSum(){
+      const total=rows.reduce((s,r)=>s+(Number(String(r.refundTotal).replace(/[^\d.-]/g,''))||0),0);
+      $('#sumN',modal).textContent=String(rows.length);
+      $('#itemCount',modal).textContent='共 '+rows.length+' 条';
+      $('#sumAmt',modal).textContent='¥'+(Math.round(total*100)/100);
+    }
+    function renderItems(){
+      box.innerHTML=rows.map((r,i)=>{
+        const fields=ITEM_FIELDS.map(([k,label,mode])=>`
+          <div class="field"><label>${label}<span class="req">*</span></label>
+            <div class="field-i"><input data-k="${k}" data-i="${i}" ${mode==='decimal'?'inputmode="decimal"':''} value="${esc(r[k])}" placeholder="${mode==='decimal'?'0.00':'请输入'}"></div></div>`).join('');
+        return `<div class="rg-item" data-i="${i}">
+          <div class="rg-head"><span class="rg-no">明细 ${i+1}</span>${rows.length>1?`<button class="rg-del" data-del="${i}">删除本行</button>`:''}</div>
+          <div class="grid2">${fields}
+            <div class="field col2"><label>退费原因<span class="req">*</span></label>
+              <textarea data-k="refundReason" data-i="${i}" placeholder="请说明退费原因">${esc(r.refundReason)}</textarea></div>
+          </div>
+        </div>`;
+      }).join('');
+      box.querySelectorAll('[data-del]').forEach(b=>{
+        b.onclick=()=>{
+          collect();
+          rows.splice(Number(b.dataset.del),1);
+          if(!rows.length) rows.push(blankItem());
+          renderItems();
+        };
+      });
+      updateSum();
+    }
+    renderItems();
+
+    box.addEventListener('input',e=>{
+      const t=e.target.closest('[data-k]');
+      if(!t) return;
+      const i=Number(t.dataset.i), k=t.dataset.k;
+      if(!rows[i]) return;
+      rows[i][k]=t.value;
+      if(k==='tuitionFee'||k==='mealFee'){
+        const r=rows[i];
+        if(r && !String(r.refundTotal).trim()){
+          const s=(Number(r.tuitionFee)||0)+(Number(r.mealFee)||0);
+          if(s){ r.refundTotal=String(s); const inp=box.querySelector('[data-k="refundTotal"][data-i="'+i+'"]'); if(inp) inp.value=r.refundTotal; }
+        }
+      }
+      updateSum();
+    });
+
+    $('#addItem',modal).onclick=()=>{
+      collect();
+      rows.push(blankItem());
+      renderItems();
+      const last=box.querySelector('.rg-item:last-child');
+      if(last && last.scrollIntoView) last.scrollIntoView({block:'center',behavior:'smooth'});
+    };
+
+    // 批量导入：CSV / XLSX 由服务端解析
+    $('#impFile',modal).onchange=async e=>{
+      const file=(e.target.files||[])[0];
+      e.target.value='';
+      if(!file) return;
+      if(file.size>10*1024*1024){ toast('文件不能超过 10MB','err'); return; }
+      try{
+        const data=await readDataUrl(file);
+        const r=await API('/import/parse',{method:'POST',headers:{'x-auth-token':state.token},body:JSON.stringify({name:file.name,data})});
+        collect();
+        if(rows.length===1 && ITEM_FIELDS.every(([k])=>!String(rows[0][k]).trim()) && !String(rows[0].refundReason).trim()) rows=[];
+        rows=rows.concat((r.items||[]).map(it=>{
+          const o=blankItem();
+          ITEM_FIELDS.forEach(([k])=>{ o[k]=String(it[k]===undefined||it[k]===null?'':it[k]); });
+          o.refundReason=String(it.refundReason===undefined||it.refundReason===null?'':it.refundReason);
+          return o;
+        }));
+        if(!rows.length) rows.push(blankItem());
+        renderItems();
+        toast('已导入 '+(r.items||[]).length+' 条明细'+(r.truncated?'（超出上限部分已截断）':''),'ok');
+      }catch(err){ toast(err.message,'err'); }
+    };
+
+    $('#submit',modal).onclick=async()=>{
+      collect();
+      const submitterName=($('#f_submitter',modal).value||'').trim();
+      if(!submitterName){ toast('请填写填报人','err'); return; }
+      if(!rows.length){ toast('请至少填写一条退费明细','err'); return; }
+      for(let i=0;i<rows.length;i++){
+        const miss=ITEM_FIELDS.filter(([k])=>!String(rows[i][k]).trim()).map(([,label])=>label.replace('（元）',''));
+        if(!String(rows[i].refundReason).trim()) miss.push('退费原因');
+        if(miss.length){ toast('第 '+(i+1)+' 行请填写：'+miss.join('、'),'err'); return; }
+      }
+      const btn=$('#submit',modal); btn.disabled=true;
+      const old=btn.innerHTML; btn.innerHTML='正在提交…';
+      try{
+        const body={submitterName,items:rows,attachments:pendingAtts.map(a=>({name:a.name,data:a.data}))};
+        const r=await API('/forms',{method:'POST',headers:{'x-auth-token':state.token},body:JSON.stringify(body)});
+        close();
+        const want=body.attachments.length, got=(typeof r.attachments==='number'?r.attachments:want);
+        toast('已生成退费单 '+r.id+'（'+r.itemCount+' 条明细，合计 ¥'+r.totalAmount+'）'+(got<want?'；有 '+(want-got)+' 个附件格式不支持，已跳过':''), got<want?'err':'ok');
+        showSignLinks(r.supervisorSignUrl, r.schoolSignUrl);
+        loadList($('#listBox'));
+      }catch(e){ toast(e.message,'err'); btn.innerHTML=old; btn.disabled=false; }
+    };
+
+    // ---------- 附件上传 ----------
+    const thumbs=$('#thumbs',modal);
+    function renderThumbs(){
+      if(!pendingAtts.length){ thumbs.hidden=true; thumbs.innerHTML=''; return; }
+      thumbs.hidden=false;
+      thumbs.innerHTML=pendingAtts.map((a,i)=>`<div class="thumb" data-i="${i}">
+        ${a.type.startsWith('image/')?`<img src="${a.data}" alt="">`:`<div class="pdf">PDF</div>`}
+        <button class="del" data-del="${i}" aria-label="移除">×</button>
+        <div class="fn">${esc(a.name)}</div>
+      </div>`).join('');
+      thumbs.querySelectorAll('[data-del]').forEach(b=>{
+        b.onclick=(e)=>{ e.stopPropagation(); pendingAtts.splice(Number(b.dataset.del),1); renderThumbs(); };
+      });
+    }
+    $('#f_files',modal).onchange=async e=>{
+      const files=Array.from(e.target.files||[]);
+      e.target.value='';
+      for(const file of files){
+        if(pendingAtts.length>=9){ toast('最多上传 9 个附件','err'); break; }
+        const isImg=/^image\//.test(file.type);
+        const isPdf=file.type==='application/pdf';
+        if(!isImg && !isPdf){ toast('仅支持图片或 PDF：'+file.name,'err'); continue; }
+        if(!isImg && file.size>6*1024*1024){ toast('PDF 超过 6MB：'+file.name,'err'); continue; }
+        try{ pendingAtts.push(await prepFile(file)); renderThumbs(); }
+        catch(err){ toast('读取失败：'+file.name,'err'); }
+      }
+    };
+  }
+
+  function readDataUrl(file){
+    return new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onerror=()=>reject(new Error('读取失败'));
+      fr.onload=()=>resolve(String(fr.result||''));
+      fr.readAsDataURL(file);
+    });
+  }
+
+  // 图片压缩后转 dataURL；PDF 直接读取
+  function prepFile(file){
+    return new Promise((resolve,reject)=>{
+      const fr=new FileReader();
+      fr.onerror=()=>reject(new Error('read error'));
+      fr.onload=()=>{
+        const raw=String(fr.result||'');
+        if(!/^image\//.test(file.type)){ resolve({name:file.name,type:file.type,data:raw}); return; }
+        const img=new Image();
+        img.onerror=()=>resolve({name:file.name,type:file.type,data:raw});
+        img.onload=()=>{
+          const MAX=1600;
+          let {width:w,height:h}=img;
+          if(Math.max(w,h)>MAX){ const s=MAX/Math.max(w,h); w=Math.round(w*s); h=Math.round(h*s); }
+          try{
+            const cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+            cv.getContext('2d').drawImage(img,0,0,w,h);
+            const out=cv.toDataURL('image/jpeg',0.82);
+            resolve({name:file.name.replace(/\.[^.]+$/,'')+'.jpg',type:'image/jpeg',
+              data:out.length<raw.length?out:raw});
+          }catch(e){ resolve({name:file.name,type:file.type,data:raw}); }
+        };
+        img.src=raw;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  function showSignLinks(supUrl, schUrl){
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    modal.innerHTML=`<div class="m-head"><h3>签字链接已生成</h3><button class="x" aria-label="关闭">×</button></div>
+      <p class="muted" style="margin:0 0 12px;font-size:13px">分别将以下两个链接转发给主管与校方，各自独立签字；校方签字时可看到主管签字。</p>
+      <div class="link-block">
+        <div class="lb-title">① 主管签字链接</div>
+        <div class="link-box" id="lk1">${esc(supUrl)}</div>
+        <button class="btn sub sm block" id="cp1">${ICON.copy} 复制主管链接</button>
+      </div>
+      <div class="link-block">
+        <div class="lb-title">② 校方签字链接</div>
+        <div class="link-box" id="lk2">${esc(schUrl)}</div>
+        <button class="btn sub sm block" id="cp2">${ICON.copy} 复制校方链接</button>
+      </div>
+      <div class="acts"><button class="btn ghost" id="cls">关闭</button></div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+    const cp=(url)=>navigator.clipboard.writeText(url).then(()=>toast('已复制','ok'),()=>window.prompt('复制以下链接：',url));
+    $('#cp1',modal).onclick=()=>cp(supUrl);
+    $('#cp2',modal).onclick=()=>cp(schUrl);
+  }
+
+  // ---------- 查看/打印 ----------
+  async function openDetail(id){
+    let f;
+    try{ const r=await API('/forms/'+id,{headers:{'x-auth-token':state.token}}); f=r.form; }
+    catch(e){ toast(e.message,'err'); return; }
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    state.attAccess={auth:state.token};
+    modal.appendChild(buildReceipt(f));
+    const bar=el('div',{class:'acts'});
+    bar.innerHTML=`<button class="btn ghost" id="cls">关闭</button><button class="btn primary" id="print">${ICON.doc} 打印单据</button>`;
+    modal.appendChild(bar);
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    const x=el('button',{class:'x',text:'×'}); x.onclick=close; modal.insertBefore(x, modal.firstChild);
+    mask.onclick=e=>{if(e.target===mask)close();};
+    $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+    $('#print',modal).onclick=()=>{ location.hash='#/print?id='+encodeURIComponent(id); close(); };
+  }
+
+  // 附件地址：按当前访问身份附带凭证（财务密钥 / 签字令牌 / 老师登录态）
+  function attUrl(formId,att){
+    const qs=new URLSearchParams(state.attAccess||{}).toString();
+    return BASE+'/api/file/'+encodeURIComponent(formId)+'/'+encodeURIComponent(att.id)+(qs?'?'+qs:'');
+  }
+  function openViewer(formId,att){
+    const box=el('div',{class:'viewer'});
+    const isImg=(att.type||'').indexOf('image/')===0;
+    box.innerHTML=`<button class="vx" aria-label="关闭">×</button>
+      ${isImg?`<img src="${esc(attUrl(formId,att))}" alt="${esc(att.name)}">`
+             :`<iframe src="${esc(attUrl(formId,att))}" title="${esc(att.name)}"></iframe>`}
+      <div class="vt">${esc(att.name)} · 点击空白处或按 Esc 关闭</div>`;
+    document.body.appendChild(box);
+    const close=()=>{ box.remove(); document.removeEventListener('keydown',esc2); };
+    function esc2(e){ if(e.key==='Escape') close(); }
+    box.querySelector('.vx').onclick=close;
+    box.onclick=e=>{ if(e.target===box) close(); };
+    document.addEventListener('keydown',esc2);
+  }
+  function attList(formId,atts){
+    const box=el('div',{class:'attach-wrap'});
+    if(!atts||!atts.length){ return null; }
+    box.innerHTML=`<div class="hd">附件（${atts.length}）</div><div class="att-list"></div>`;
+    const list=box.querySelector('.att-list');
+    atts.forEach(a=>{
+      const it=el('div',{class:'att-item'});
+      const isImg=(a.type||'').indexOf('image/')===0;
+      it.innerHTML=`<span class="ico">${isImg?ICON.image:ICON.doc}</span>
+        <span class="nm">${esc(a.name)}</span><span class="sz">${esc(fmtSize(a.size))}</span>`;
+      it.onclick=()=>openViewer(formId,a);
+      list.appendChild(it);
+    });
+    return box;
+  }
+  function fmtSize(n){
+    const b=Number(n)||0;
+    if(b<1024) return b+'B';
+    if(b<1048576) return Math.round(b/1024)+'KB';
+    return (b/1048576).toFixed(1)+'MB';
+  }
+
+  function statusName(s){
+    const m={pending_supervisor:'待主管签字',pending_school:'待校方签字',completed:'已完成(双方签字)',revoked:'已撤销',returned:'已退回老师'};
+    return m[s]||s||'';
+  }
+
+  function buildReceipt(f){
+    const c=el('div');
+    const r=el('div',{class:'receipt'});
+    const sigImg=(s)=> s? `<img src="${esc(s)}" alt="签字">` : '<span class="unsigned">未签字</span>';
+    const val=(v)=> (v!==undefined&&v!==null&&String(v).trim()!=='') ? esc(v) : '<span class="unsigned">待财务填写</span>';
+    const items=(f.items&&f.items.length)?f.items:[{}];
+    const total=(f.totalAmount!==undefined&&f.totalAmount!==null&&f.totalAmount!=='')?f.totalAmount
+      :items.reduce((s,it)=>s+(Number(it.refundTotal)||0),0);
+    const rows=items.map((it,i)=>`<tr>
+      <td class="c">${i+1}</td>
+      <td>${esc(it.studentName)}</td>
+      <td>${esc(it.className)}</td>
+      <td>${esc(it.enrollDate)}</td>
+      <td>${esc(it.courseName)}</td>
+      <td class="num">${esc(it.tuitionFee)}</td>
+      <td class="num">${esc(it.mealFee)}</td>
+      <td class="num amt">${esc(it.refundTotal)}</td>
+      <td>${esc(it.payeeName)}</td>
+      <td class="rs">${esc(it.refundReason)}</td>
+    </tr>`).join('');
+    r.innerHTML=`
+      <div class="rlogo"><img src="assets/logo-full.png" alt="岳晟乐学岛"></div>
+      <div class="rtitle">乐学岛退费收款单</div>
+      <div class="rsub">单号：${esc(f.id||'')}　状态：${esc(f.statusText||statusName(f.status))}</div>
+      <table class="meta">
+        <tr><td class="lbl">填报人</td><td>${esc(f.submitterName||f.ownerName||'')}</td><td class="lbl">填报时间</td><td>${esc(fmtTime(f.createdAt))}</td></tr>
+        <tr><td class="lbl">退费方式</td><td>${val(f.refundMethod)}</td><td class="lbl">退款日期</td><td>${val(f.refundDate)}</td></tr>
+      </table>
+      <div class="tbl-wrap">
+        <table class="detail">
+          <thead><tr><th>序号</th><th>学生姓名</th><th>所在班级</th><th>入校就读</th><th>课程名称</th><th>学费</th><th>餐费</th><th>退费金额</th><th>收款户名</th><th>退费原因</th></tr></thead>
+          <tbody>${rows||'<tr><td colspan="10" class="c">无明细</td></tr>'}</tbody>
+          <tfoot><tr><td colspan="7" class="tr">合计（${items.length} 人）</td><td class="num amt">¥${esc(total)}</td><td colspan="2"></td></tr></tfoot>
+        </table>
+      </div>
+      <div class="rtip"><span>共 ${items.length} 人 · 合计 <b>¥${esc(total)}</b></span><span class="hint">表格可左右滑动查看全部字段</span></div>
+      <table class="meta">
+        <tr><td class="lbl">主管签字</td><td class="sigcell">${sigImg(f.supervisorSig)}</td><td class="lbl">签字时间</td><td class="sigcell">${esc(fmtTime(f.supervisorSignedAt))}</td></tr>
+        <tr><td class="lbl">校方签字</td><td class="sigcell">${sigImg(f.schoolSig)}</td><td class="lbl">签字时间</td><td class="sigcell">${esc(fmtTime(f.schoolSignedAt))}</td></tr>
+      </table>`;
+    const al=attList(f.id,f.attachments);
+    if(al) r.appendChild(al);
+    c.appendChild(r);
+    return c;
+  }
+
+  async function renderPrint(root,id){
+    if(!state.token){ location.hash='#/login'; return; }
+    let f; try{ const r=await API('/forms/'+id,{headers:{'x-auth-token':state.token}}); f=r.form; }catch(e){ root.innerHTML='<div class="empty">无权限或单据不存在</div>'; return; }
+    const only=el('div',{class:'only-print'});
+    state.attAccess={auth:state.token};
+    only.appendChild(buildReceipt(f));
+    root.appendChild(only);
+    setTimeout(()=>{ window.print(); },300);
+  }
+
+  // ---------- 签字页（公开，无需登录） ----------
+  async function renderSign(root,id,token,role){
+    if(!id||!token){ root.innerHTML=`<div class="auth-hero"><div class="brand-plate"><img src="assets/logo-full.png" alt="岳晟乐学岛"></div><h1>链接无效</h1></div><div class="auth-card"><p class="muted center">链接缺少参数，无法打开。</p></div>`; return; }
+    let data;
+    try{ data=await API('/sign?id='+encodeURIComponent(id)+'&token='+encodeURIComponent(token)); }
+    catch(e){ root.innerHTML=`<div class="auth-hero"><div class="brand-plate"><img src="assets/logo-full.png" alt="岳晟乐学岛"></div><h1>无法打开</h1></div><div class="auth-card"><p class="muted center">${esc(e.message)}</p></div>`; return; }
+    const f=data.form;
+    const roleName=role==='school'?'校方签字':(role==='supervisor'?'主管签字':'签字');
+
+    const hero=el('div',{class:'sign-hero'});
+    hero.innerHTML=`<div class="sign-brand"><img src="assets/logo-full.png" alt="乐学岛"><span>退费收款单 · 在线签字</span></div>
+      <h1>${f.status==='completed'?'签字已完成':'请在下方签字'}</h1>
+      <div class="sign-flow">
+        <div class="step ${role==='supervisor'||f.status!=='pending_supervisor'?'done':''} ${role==='supervisor'&&f.status==='pending_supervisor'?'active':''}"><div class="dot">1</div>主管</div>
+        <div class="line"></div>
+        <div class="step ${f.status==='completed'?'done':''} ${role==='school'&&f.status==='pending_school'?'active':''}"><div class="dot">2</div>校方</div>
+      </div>`;
+    root.appendChild(hero);
+
+    const wrap=el('div',{class:'wrap'});
+    const card=el('div',{class:'card'});
+    state.attAccess={token:token};
+    card.appendChild(buildReceipt(f));
+    wrap.appendChild(card);
+
+    const canSign=(role==='supervisor'&&f.status==='pending_supervisor')||(role==='school'&&f.status==='pending_school');
+
+    if(canSign){
+      const signBox=el('div',{class:'card'});
+      const supPrev=(role==='school'&&f.supervisorSig)?`<div class="sup-preview"><div class="lbl">主管已签字：${esc(f.supervisorSigner||'')}</div><img src="${esc(f.supervisorSig)}" alt="主管签字"></div>`:'';
+      signBox.innerHTML=`<h2 style="margin-bottom:4px">${roleName}</h2>
+        <p class="sub">请核对上方退费信息，在下方手写签名后提交${role==='school'?'；如信息有误可退回给老师':''}。</p>
+        ${supPrev}
+        <div class="field" style="margin-top:6px"><label>${roleName}人姓名</label><div class="field-i"><span class="fi">${ICON.user}</span><input id="signer" placeholder="请输入您的姓名"></div></div>
+        <div class="pad-wrap" style="margin-top:6px"><span class="pad-hint" id="hint">${ICON.pen}<span>在此处手写签名</span></span><canvas class="pad" id="pad"></canvas></div>
+        <div class="acts"><button class="btn ghost" id="clear">清除</button><button class="btn warn" id="returnBtn">退回老师</button><button class="btn ok" id="submitSig">${ICON.check} 提交签字</button></div>`;
+      wrap.appendChild(signBox);
+      root.appendChild(wrap);
+      setupPad(role,roleName);
+      $('#returnBtn').onclick=()=>openReturnModal(role,id,token);
+    } else {
+      let msg,sub;
+      if(f.status==='revoked'){ msg='该退费单已被老师撤销'; sub='无需继续签字，链接已失效。'; }
+      else if(f.status==='returned'){ msg='该退费单已被退回老师'; sub='退回人：'+(f.returnedBy||'')+(f.returnReason?'；原因：'+f.returnReason:''); }
+      else if(f.status==='completed'){ msg='本单已完成签字'; sub='主管与校方均已签字，流程结束。'; }
+      else if(role==='school'&&f.status==='pending_supervisor'){ msg='请等待主管先签字'; sub='主管签字后，再使用本链接签字。'; }
+      else if(role==='supervisor'&&f.status==='pending_school'){ msg='主管已签字'; sub='无需重复签字，请等待校方签字。'; }
+      else { msg='当前无需签字'; sub=''; }
+      const doneBox=el('div',{class:'card center'});
+      doneBox.innerHTML=`<div style="width:54px;height:54px;border-radius:50%;background:#eef0f3;color:#6b7280;display:flex;align-items:center;justify-content:center;margin:6px auto 12px">${ICON.lock}</div>
+        <h2 style="margin:0">${esc(msg)}</h2><p class="sub">${esc(sub)}</p>`;
+      wrap.appendChild(doneBox);
+      root.appendChild(wrap);
+    }
+  }
+
+  function openReturnModal(role,id,token){
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    modal.innerHTML=`<div class="m-head"><h3>退回给老师</h3><button class="x" aria-label="关闭">×</button></div>
+      <p class="muted" style="margin:0 0 12px;font-size:13px">退回后，该退费单将转为「已退回」状态，老师需重新提交。</p>
+      <div class="field"><label>退回原因（选填）</label><textarea id="rreason" placeholder="如：金额有误，请核对后重新提交"></textarea></div>
+      <div class="acts"><button class="btn ghost" id="cls">取消</button><button class="btn warn" id="confirm">确认退回</button></div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+    $('#confirm',modal).onclick=async()=>{
+      const btn=$('#confirm',modal); btn.disabled=true;
+      try{
+        const r=await API('/sign',{method:'POST',body:JSON.stringify({id,token,role,action:'return',returnReason:$('#rreason',modal).value})});
+        close(); toast('已退回老师：'+r.statusText,'ok'); setTimeout(()=>location.reload(),900);
+      }catch(e){ toast(e.message,'err'); btn.disabled=false; }
+    };
+  }
+
+  function setupPad(role,roleName){
+    const canvas=$('#pad'); const hint=$('#hint');
+    const ctx=canvas.getContext && canvas.getContext('2d');
+    if(!ctx){ toast('当前浏览器不支持手写签字，请更换浏览器或使用手机微信打开','err'); return; }
+    function fit(){ const r=canvas.getBoundingClientRect(); const dpr=window.devicePixelRatio||1;
+      canvas.width=r.width*dpr; canvas.height=r.height*dpr; ctx.scale(dpr,dpr);
+      ctx.lineWidth=2.4; ctx.lineCap='round'; ctx.lineJoin='round'; ctx.strokeStyle='#111'; }
+    fit(); window.addEventListener('resize',fit);
+    let drawing=false,last=null,hasInk=false;
+    function pos(e){ const r=canvas.getBoundingClientRect(); const t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+    function start(e){ e.preventDefault(); drawing=true; last=pos(e); if(hint) hint.style.display='none'; }
+    function move(e){ if(!drawing)return; e.preventDefault(); const p=pos(e); ctx.beginPath(); ctx.moveTo(last.x,last.y); ctx.lineTo(p.x,p.y); ctx.stroke(); last=p; hasInk=true; }
+    function end(){ drawing=false; }
+    canvas.addEventListener('mousedown',start); canvas.addEventListener('mousemove',move); window.addEventListener('mouseup',end);
+    canvas.addEventListener('touchstart',start,{passive:false}); canvas.addEventListener('touchmove',move,{passive:false}); canvas.addEventListener('touchend',end);
+    $('#clear').onclick=()=>{ ctx.clearRect(0,0,canvas.width,canvas.height); hasInk=false; if(hint) hint.style.display=''; };
+
+    $('#submitSig').onclick=async()=>{
+      if(!hasInk){ toast('请先手写签名','err'); return; }
+      const sig=canvas.toDataURL('image/png');
+      const params=new URLSearchParams(location.hash.split('?')[1]||'');
+      const btn=$('#submitSig'); btn.disabled=true;
+      try{
+        const r=await API('/sign',{method:'POST',body:JSON.stringify({id:params.get('id'),token:params.get('token'),role,signerName:$('#signer').value,sig})});
+        toast('签字成功：'+r.statusText,'ok');
+        setTimeout(()=>location.reload(),900);
+      }catch(e){ toast(e.message,'err'); btn.disabled=false; }
+    };
+  }
+
+  // ---------- 财务后台：微信登录设置 ----------
+  async function openWechatSettings(){
+    let cfg;
+    try{ cfg=await API('/admin/wechat?adminKey='+encodeURIComponent(state.adminKey)); }
+    catch(e){ toast(e.message,'err'); return; }
+    let wxOn=!!cfg.nameLogin, p4On=!!cfg.nameLoginNeedPhone4;
+
+    const mask=el('div',{class:'mask'});
+    const modal=el('div',{class:'modal'});
+    modal.innerHTML=`<div class="m-head"><h3>微信登录设置</h3><button class="x" aria-label="关闭">×</button></div>
+      <p class="sub" style="margin:0 0 12px">配置后，老师在微信里打开本应用即可一键登录，无需注册手机号；未配置时可用「免注册进入」。</p>
+      <div class="field"><label>公众号 AppID</label>
+        <div class="field-i"><span class="fi">${ICON.wechat}</span><input id="wxa" value="${esc(cfg.appId||'')}" placeholder="wx 开头的 AppID"></div></div>
+      <div class="field"><label>公众号 AppSecret</label>
+        <div class="field-i"><span class="fi">${ICON.lock}</span><input id="wxs" type="password" placeholder="${cfg.hasSecret?'已保存，留空则不修改':'请输入 AppSecret'}"></div></div>
+      <div class="set-row"><div><div class="t">免注册快捷进入</div><div class="d">微信内填写姓名即可进入，无需 AppID</div></div><button class="sw ${wxOn?'on':''}" id="swName" aria-label="切换"></button></div>
+      <div class="set-row"><div><div class="t">需要手机号后 4 位</div><div class="d">用于区分同名老师，建议开启</div></div><button class="sw ${p4On?'on':''}" id="sw4" aria-label="切换"></button></div>
+      <div class="field" style="margin-top:14px"><label>应用公网地址（可选）</label>
+        <div class="field-i"><span class="fi">${ICON.doc}</span><input id="wxb" value="${esc(cfg.publicBaseUrl||'')}" placeholder="如 https://refund.example.com"></div>
+        <div class="hint-line" style="text-align:left;margin-top:6px">签字链接与微信回调地址都以此为准；留空则按访问域名自动识别</div></div>
+      <div class="field"><label>网页授权回调地址（填到公众号后台）</label>
+        <div class="code">${esc(cfg.callbackUrl||'')}</div></div>
+      <div class="hint-line" style="text-align:left">步骤：① 公众号后台「设置与开发 - 基本配置」取 AppID/AppSecret 填入此处；② 「公众号设置 - 功能设置 - 网页授权域名」填写本应用域名，并按提示下载校验文件；③ 把校验文件名与内容填在下方即可通过校验；④ 公众号需为已认证服务号。</div>
+      <div class="set-row" style="margin-top:8px"><div><div class="t">域名校验文件托管</div><div class="d">文件名通常是 MP_verify_ 开头、.txt 结尾</div></div></div>
+      <div class="field"><label>文件名</label><div class="field-i"><input id="vfn" placeholder="MP_verify_xxx.txt"></div></div>
+      <div class="field"><label>文件内容</label><textarea id="vfc" placeholder="打开 txt 文件，复制其中的字符串"></textarea></div>
+      ${(cfg.verifyFiles&&cfg.verifyFiles.length)?`<div class="hint-line" style="text-align:left">已托管：${esc(cfg.verifyFiles.join('、'))}</div>`:''}
+      <div class="acts"><button class="btn ghost" id="cls">关闭</button><button class="btn primary" id="save">${ICON.check} 保存</button></div>`;
+    mask.appendChild(modal); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+    document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+
+    const swName=$('#swName',modal), sw4=$('#sw4',modal);
+    swName.onclick=()=>{ wxOn=!wxOn; swName.classList.toggle('on',wxOn); };
+    sw4.onclick=()=>{ p4On=!p4On; sw4.classList.toggle('on',p4On); };
+
+    $('#save',modal).onclick=async()=>{
+      const btn=$('#save',modal); btn.disabled=true;
+      const q='?adminKey='+encodeURIComponent(state.adminKey);
+      try{
+        await API('/admin/wechat'+q,{method:'POST',body:JSON.stringify({
+          adminKey:state.adminKey,
+          appId:$('#wxa',modal).value.trim(),
+          appSecret:$('#wxs',modal).value.trim(),
+          nameLogin:wxOn, nameLoginNeedPhone4:p4On,
+          publicBaseUrl:$('#wxb',modal).value.trim(),
+        })});
+        const fn=$('#vfn',modal).value.trim(), fc=$('#vfc',modal).value.trim();
+        if(fn||fc){
+          if(!fn||!fc){ toast('托管校验文件需同时填写文件名与内容','err'); btn.disabled=false; return; }
+          await API('/admin/wechat/verify-file'+q,{method:'POST',body:JSON.stringify({adminKey:state.adminKey,filename:fn,content:fc})});
+        }
+        close(); toast('设置已保存','ok');
+      }catch(e){ toast(e.message,'err'); btn.disabled=false; }
+    };
+  }
+
+  // ---------- 财务后台 ----------
+  async function renderAdmin(root){
+    root.innerHTML='';
+    const top=el('div',{class:'topbar'});
+    top.innerHTML=`<div class="brand"><img class="logo-img" src="assets/logo-full.png" alt="乐学岛"><span class="vline"></span><span class="txt">财务后台</span></div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <a href="/" class="btn ghost sm" title="返回财务管理系统（需内部账号）">财务系统</a>
+        <button class="btn ghost sm" id="wxset">${ICON.wechat} 微信登录</button>
+        <a href="#/" class="btn ghost sm">返回</a>
+      </div>`;
+    root.appendChild(top);
+    $('#wxset',top).onclick=()=>{ if(!state.adminKey){ toast('请先输入管理密码','err'); return; } openWechatSettings(); };
+    const wrap=el('div',{class:'wrap'});
+
+    if(!state.adminKey){
+      const card=el('div',{class:'card'});
+      card.innerHTML=`<div class="m-head"><h3 style="margin:0;font-size:18px;font-weight:800">${ICON.key} 输入管理密码</h3></div>
+        <p class="sub">密码由管理员在服务器 data/config.json 中设置。财务凭此密码可查看全部退费单。</p>
+        <div class="field"><label>管理密码</label><div class="field-i"><span class="fi">${ICON.lock}</span><input id="key" type="password" placeholder="请输入管理密码"></div></div>
+        <button class="btn primary block" id="enter">${ICON.check} 进入后台</button>`;
+      wrap.appendChild(card); root.appendChild(wrap);
+      $('#enter').onclick=()=>{ const v=$('#key').value.trim(); if(!v){toast('请输入密码','err');return;} state.adminKey=v; localStorage.setItem('rf_admin',v); renderAdmin($('#app')); };
+      return;
+    }
+    let data;
+    try{ data=await API('/admin/stats?adminKey='+encodeURIComponent(state.adminKey)); }
+    catch(e){ state.adminKey='';localStorage.removeItem('rf_admin'); toast(e.message,'err'); renderAdmin($('#app')); return; }
+
+    const dash=el('div',{class:'card'});
+    dash.innerHTML=`<div class="stat-grid">
+      <div class="kpi total"><div class="n">${data.stats.total}</div><div class="l">退费单总数</div></div>
+      <div class="kpi amt"><div class="n">¥${data.stats.totalAmount}</div><div class="l">退费总金额</div></div>
+      <div class="kpi items"><div class="n">${data.stats.totalItems}</div><div class="l">退费人数（明细）</div></div>
+      <div class="kpi ps"><div class="n">${data.stats.pending_supervisor}</div><div class="l">待主管签字</div></div>
+      <div class="kpi pk"><div class="n">${data.stats.pending_school}</div><div class="l">待校方签字</div></div>
+      <div class="kpi cp"><div class="n">${data.stats.completed}</div><div class="l">已完成</div></div>
+      <div class="kpi rt"><div class="n">${data.stats.returned}</div><div class="l">已退回</div></div>
+      <div class="kpi rv"><div class="n">${data.stats.revoked}</div><div class="l">已撤销</div></div>
+    </div>
+    <div class="filter-bar">
+      <select id="fstatus"><option value="">全部状态</option><option value="pending_supervisor">待主管签字</option><option value="pending_school">待校方签字</option><option value="completed">已完成</option><option value="returned">已退回</option><option value="revoked">已撤销</option></select>
+      <div class="field-i"><span class="fi">${ICON.search}</span><input id="fq" placeholder="搜索 姓名/班级/单号"></div>
+      <button class="btn sub sm" id="search">查询</button>
+      <a class="btn ok sm" id="exp" href="#">${ICON.copy} 导出CSV</a>
+    </div>`;
+    wrap.appendChild(dash);
+
+    const listCard=el('div',{class:'card'});
+    listCard.innerHTML='<div id="adminList"></div>';
+    wrap.appendChild(listCard);
+    root.appendChild(wrap);
+
+    let curStatus='', curQ='';
+    const load=async()=>{
+      const box=$('#adminList');
+      try{
+        const r=await API('/admin/forms?adminKey='+encodeURIComponent(state.adminKey)+'&status='+encodeURIComponent(curStatus)+'&q='+encodeURIComponent(curQ));
+        if(!r.forms.length){ box.innerHTML=`<div class="empty">${ICON.inbox}<div class="t">暂无退费单</div></div>`; return; }
+        const sCls={pending_supervisor:'s0',pending_school:'s1',completed:'s2',revoked:'s3',returned:'s3'};
+        box.innerHTML='<div class="list"></div>'; const list=box.querySelector('.list');
+        r.forms.forEach(f=>{
+          const item=el('div',{class:'item'}); const sc=sCls[f.status]||'s0';
+          const ret=(f.status==='returned')?` · 退回人 ${esc(f.returnedBy||'')}`:'';
+          const att=f.attachmentCount?` · 附件 ${f.attachmentCount}`:'';
+          const needRf=(f.status==='completed'&&!f.refundDate)?' · <span class="warn-tx">待财务登记退费信息</span>':'';
+          const rf=(f.refundDate)?` · 退费 ${esc(f.refundMethod||'')} ${esc(f.refundDate)}`:'';
+          item.innerHTML=`<div class="bar ${sc}"></div>
+            <div class="main">
+              <div class="name">${esc((f.items&&f.items[0]&&f.items[0].studentName)||'—')} ${f.itemCount>1?`<span class="cls">等 ${f.itemCount} 人</span>`:'<span class="cls">'+esc(f.className||'')+'</span>'} <span class="cls">· ${esc(f.id)}</span></div>
+              <div class="meta"><span class="amt">¥${esc(f.refundTotal)}</span> · ${f.itemCount} 条明细 · 填报人 ${esc(f.submitterName||f.ownerName||'')} · ${esc(fmtTime(f.createdAt))}${att}${ret}${rf}${needRf}</div>
+            </div>
+            <button class="btn ghost sm" data-act="view">${ICON.doc} 查看</button>`;
+          item.querySelector('[data-act="view"]').onclick=()=>openAdminDetail(f);
+          list.appendChild(item);
+        });
+      }catch(e){ box.innerHTML='<div class="empty"><div class="t">加载失败</div><div class="d">'+esc(e.message)+'</div></div>'; }
+    };
+    $('#search').onclick=()=>{ curStatus=$('#fstatus').value; curQ=$('#fq').value.trim(); load(); };
+    $('#fq').addEventListener('keydown',e=>{ if(e.key==='Enter'){ $('#search').click(); } });
+    $('#exp').onclick=e=>{ e.preventDefault(); const u=BASE+'/api/admin/export?adminKey='+encodeURIComponent(state.adminKey)+'&status='+encodeURIComponent(curStatus)+'&q='+encodeURIComponent(curQ); window.location.href=u; };
+    load();
+
+    function openAdminDetail(f){
+      const mask=el('div',{class:'mask'});
+      const modal=el('div',{class:'modal'});
+      state.attAccess={adminKey:state.adminKey};
+      modal.appendChild(buildReceipt(f));
+      const canRefund=f.status==='completed';
+      const bar=el('div',{class:'acts'});
+      bar.innerHTML=`<button class="btn ghost" id="cls">关闭</button>
+        <button class="btn ghost" id="print">${ICON.doc} 打印</button>
+        ${canRefund?`<button class="btn primary" id="fill">${ICON.pen} ${f.refundDate?'修改退费信息':'登记退费信息'}</button>`:''}`;
+      modal.appendChild(bar);
+      mask.appendChild(modal); document.body.appendChild(mask);
+      const close=()=>mask.remove();
+      const x=el('button',{class:'x',text:'×'}); x.onclick=close; modal.insertBefore(x, modal.firstChild);
+      mask.onclick=e=>{if(e.target===mask)close();}; $('#cls',modal).onclick=close;
+      document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+      $('#print',modal).onclick=()=>window.print();
+      if(canRefund) $('#fill',modal).onclick=()=>{ close(); openRefundModal(f); };
+    }
+
+    // 财务登记实际退费信息（双方签字完成后）
+    function openRefundModal(f){
+      const mask=el('div',{class:'mask'});
+      const modal=el('div',{class:'modal'});
+      const today=(()=>{ const d=new Date(); const p=n=>String(n).padStart(2,'0'); return d.getFullYear()+'-'+p(d.getMonth()+1)+'-'+p(d.getDate()); })();
+      const dval=(()=>{ const m=String(f.refundDate||'').match(/^(\d{4})\D+(\d{1,2})\D+(\d{1,2})/); if(!m) return f.refundDate?today:''; return m[1]+'-'+String(m[2]).padStart(2,'0')+'-'+String(m[3]).padStart(2,'0'); })();
+      modal.innerHTML=`<div class="m-head"><h3>登记退费信息</h3><button class="x" aria-label="关闭">×</button></div>
+        <p class="muted" style="margin:0 0 14px;font-size:13px">${esc(f.studentName)} · 共 ${f.itemCount} 条明细 · 合计 ¥${esc(f.refundTotal)}。该信息将打印在退费单上。</p>
+        <div class="field"><label>退费方式<span class="req">*</span></label>
+          <div class="field-i"><select id="rm">
+            <option value="">请选择</option>
+            ${['现金','微信','支付宝','银行转账'].map(x=>`<option${f.refundMethod===x?' selected':''}>${x}</option>`).join('')}
+          </select></div></div>
+        <div class="field"><label>退款日期<span class="req">*</span></label>
+          <div class="field-i"><input type="date" id="rd" value="${esc(dval||today)}"></div></div>
+        <div class="field"><label>备注 <span class="opt">选填</span></label>
+          <div class="field-i"><input id="rn" placeholder="如：银行流水号" value="${esc(f.refundNote||'')}"></div></div>
+        <div class="acts"><button class="btn ghost" id="cancel">取消</button><button class="btn ok" id="ok">${ICON.check} 保存</button></div>`;
+      mask.appendChild(modal); document.body.appendChild(mask);
+      const close=()=>mask.remove();
+      $('.x',modal).onclick=close; mask.onclick=e=>{if(e.target===mask)close();};
+      $('#cancel',modal).onclick=close;
+      document.addEventListener('keydown',function esc(e){ if(e.key==='Escape'){ close(); document.removeEventListener('keydown',esc);} });
+      $('#ok',modal).onclick=async()=>{
+        const method2=$('#rm',modal).value, dv=$('#rd',modal).value;
+        if(!method2){ toast('请选择退费方式','err'); return; }
+        if(!dv){ toast('请选择退款日期','err'); return; }
+        const m=dv.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        const cn=m?`${m[1]}年${Number(m[2])}月${Number(m[3])}日`:dv;
+        const btn=$('#ok',modal); btn.disabled=true;
+        try{
+          await API('/admin/forms/'+encodeURIComponent(f.id)+'/refund?adminKey='+encodeURIComponent(state.adminKey),{
+            method:'POST',body:JSON.stringify({adminKey:state.adminKey,refundMethod:method2,refundDate:cn,refundNote:$('#rn',modal).value})
+          });
+          close(); toast('退费信息已保存','ok'); load();
+        }catch(e){ toast(e.message,'err'); btn.disabled=false; }
+      };
+    }
+  }
+
+  // ---------- 启动：处理微信回调票据 ----------
+  async function boot(){
+    let h=location.hash||'';
+    // 微信授权失败回跳：提示并清理地址
+    const em=h.match(/wxerr=([^&]+)/);
+    if(em){
+      let msg='微信登录失败'; try{ msg=decodeURIComponent(em[1]); }catch(e){}
+      history.replaceState(null,'','#/login');
+      router();
+      toast(msg,'err');
+      return;
+    }
+    // 微信授权成功回跳：一次性票据换登录态
+    const mm=h.match(/^#\/wx\?ticket=([^&]+)/);
+    if(mm){
+      let ticket=''; try{ ticket=decodeURIComponent(mm[1]); }catch(e){ ticket=mm[1]; }
+      try{
+        const r=await API('/auth/wechat/exchange',{method:'POST',body:JSON.stringify({ticket})});
+        state.token=r.token; state.user=r.user; localStorage.setItem('rf_token',r.token);
+        history.replaceState(null,'', r.needName?'#/name':'#/app');
+      }catch(e){
+        history.replaceState(null,'','#/login');
+        toast(e.message,'err');
+      }
+    }
+    router();
+  }
+
+  window.addEventListener('hashchange',router);
+  window.addEventListener('DOMContentLoaded',boot);
+  if(document.readyState!=='loading') boot();
+
+  // 暴露句柄便于自检
+  window.RefundApp={state,router,esc,fmtTime,statusTag,ICON};
+})();
+</script>
+</body>
+</html>

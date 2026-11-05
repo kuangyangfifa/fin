@@ -1,4 +1,11 @@
 __pycache__/
 instance/
 *.pyc
-.env
+.env
+
+# 退费模块运行时数据（单据、账号、会话、附件、含口令的 config.json）
+refund/data/
+refund/docs/
+# 本地部署私有配置（含服务器地址、口令），不入库
+deploy/*.local
+*.local.env

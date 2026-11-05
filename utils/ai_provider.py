@@ -7,9 +7,10 @@ from flask import current_app
 class ClaudeProvider:
     """Provider for Anthropic Claude API."""
 
-    def __init__(self, api_key):
+    def __init__(self, api_key, model=None):
         from anthropic import Anthropic
         self.client = Anthropic(api_key=api_key)
+        self.model = model or 'claude-sonnet-4-20250514'
 
     def chat(self, messages, max_tokens=1024, system=None):
         """Send a chat request to Claude API.
@@ -33,7 +34,7 @@ class ClaudeProvider:
                 formatted.append({'role': role, 'content': msg['content']})
 
             response = self.client.messages.create(
-                model='claude-sonnet-4-20250514',
+                model=self.model,
                 max_tokens=max_tokens,
                 system=system,
                 messages=formatted,
@@ -64,12 +65,18 @@ class ClaudeProvider:
 class QwenProvider:
     """Provider for Alibaba Qwen API (OpenAI-compatible)."""
 
-    def __init__(self, api_key, base_url=None):
-        from openai import OpenAI
+    def __init__(self, api_key, base_url=None, model=None):
+        try:
+            from openai import OpenAI
+        except ImportError:
+            raise ImportError(
+                'openai 包未安装，请执行: pip install openai'
+            )
         self.client = OpenAI(
             api_key=api_key,
             base_url=base_url or 'https://dashscope.aliyuncs.com/compatible-mode/v1',
         )
+        self.model = model or 'qwen-plus'
 
     def chat(self, messages, max_tokens=1024, system=None):
         """Send a chat request to Qwen API.
@@ -90,7 +97,7 @@ class QwenProvider:
                 formatted.append({'role': msg['role'], 'content': msg['content']})
 
             response = self.client.chat.completions.create(
-                model='qwen-plus',
+                model=self.model,
                 messages=formatted,
                 max_tokens=max_tokens,
             )
@@ -120,7 +127,7 @@ class QwenProvider:
 class DeepSeekProvider:
     """Provider for DeepSeek API (OpenAI-compatible)."""
 
-    def __init__(self, api_key, base_url=None):
+    def __init__(self, api_key, base_url=None, model=None):
         try:
             from openai import OpenAI
         except ImportError:
@@ -131,6 +138,7 @@ class DeepSeekProvider:
             api_key=api_key,
             base_url=base_url or 'https://api.deepseek.com',
         )
+        self.model = model or 'deepseek-chat'
 
     def chat(self, messages, max_tokens=4096, system=None):
         """Send a chat request to DeepSeek API.
@@ -151,7 +159,7 @@ class DeepSeekProvider:
                 formatted.append({'role': msg['role'], 'content': msg['content']})
 
             response = self.client.chat.completions.create(
-                model='deepseek-chat',
+                model=self.model,
                 messages=formatted,
                 max_tokens=max_tokens,
             )
@@ -189,20 +197,23 @@ def get_ai_provider():
         api_key = current_app.config.get('CLAUDE_API_KEY', '')
         if not api_key:
             return None
-        return ClaudeProvider(api_key)
+        model = current_app.config.get('CLAUDE_MODEL')
+        return ClaudeProvider(api_key, model=model)
 
     if provider_name == 'qwen':
         api_key = current_app.config.get('QWEN_API_KEY', '')
         if not api_key:
             return None
         base_url = current_app.config.get('QWEN_BASE_URL')
-        return QwenProvider(api_key, base_url)
+        model = current_app.config.get('QWEN_MODEL')
+        return QwenProvider(api_key, base_url, model=model)
 
     if provider_name == 'deepseek':
         api_key = current_app.config.get('DEEPSEEK_API_KEY', '')
         if not api_key:
             return None
         base_url = current_app.config.get('DEEPSEEK_BASE_URL')
-        return DeepSeekProvider(api_key, base_url)
+        model = current_app.config.get('DEEPSEEK_MODEL')
+        return DeepSeekProvider(api_key, base_url, model=model)
 
     return None

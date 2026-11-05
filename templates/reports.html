@@ -73,6 +73,23 @@
                 </div>
             </a>
         </div>
+
+        {% if current_user.is_admin %}
+        <!-- AI Chat Assistant Card -->
+        <div class="col-md-4">
+            <a href="{{ url_for('ai.ai_chat') }}" class="text-decoration-none">
+                <div class="card h-100 border-dark">
+                    <div class="card-body text-center py-5">
+                        <div class="mb-3">
+                            <i class="bi bi-chat-square-text text-dark" style="font-size: 3rem;"></i>
+                        </div>
+                        <h5 class="card-title text-dark">AI 分析助手</h5>
+                        <p class="card-text text-muted">以对话方式进行财务数据查询与趋势/结构分析，自动生成图表与解读</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+        {% endif %}
     </div>
 
     <!-- Usage Tips -->

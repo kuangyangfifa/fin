@@ -281,6 +281,8 @@
 
         const bubble = document.createElement('div');
         bubble.className = 'ai-message-bubble';
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.style.wordBreak = 'break-word';
         bubble.textContent = content;
 
         msgDiv.appendChild(bubble);

@@ -11,7 +11,7 @@ load_dotenv()
 
 from config import config
 from models import db, User
-from routes import auth_bp, main_bp, accounts_bp, transactions_bp, reports_bp, settings_bp
+from routes import auth_bp, main_bp, accounts_bp, transactions_bp, reports_bp, settings_bp, ai_bp
 
 
 def create_app(config_name=None):
@@ -39,10 +39,13 @@ def create_app(config_name=None):
     def load_user(user_id):
         return User.query.get(int(user_id))
 
-    # Add context processor to provide current datetime to all templates
+    # Add context processor to provide shared template variables
     @app.context_processor
-    def inject_now():
-        return {'now': datetime.now()}
+    def inject_globals():
+        return {
+            'now': datetime.now(),
+            'refund_url': app.config.get('REFUND_URL', '/refund/'),
+        }
 
     # Register blueprints
     app.register_blueprint(auth_bp)
@@ -51,6 +54,7 @@ def create_app(config_name=None):
     app.register_blueprint(transactions_bp)
     app.register_blueprint(reports_bp)
     app.register_blueprint(settings_bp)
+    app.register_blueprint(ai_bp)
 
     # Register CLI commands
     register_cli_commands(app)

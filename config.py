@@ -20,9 +20,25 @@ class Config:
     # DeepSeek AI configuration
     DEEPSEEK_API_KEY = os.environ.get('DEEPSEEK_API_KEY', '')
     DEEPSEEK_BASE_URL = os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
+    DEEPSEEK_MODEL = os.environ.get('DEEPSEEK_MODEL', 'deepseek-chat')
+
+    AI_PROVIDER = os.environ.get('AI_PROVIDER', '').strip()
+
+    # Qwen AI configuration (OpenAI-compatible)
+    QWEN_API_KEY = os.environ.get('QWEN_API_KEY', '')
+    QWEN_BASE_URL = os.environ.get('QWEN_BASE_URL', 'https://dashscope.aliyuncs.com/compatible-mode/v1')
+    QWEN_MODEL = os.environ.get('QWEN_MODEL', 'qwen-plus')
+
+    # Claude AI configuration
+    CLAUDE_API_KEY = os.environ.get('CLAUDE_API_KEY', '')
+    CLAUDE_MODEL = os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
 
     # Application configuration
     ITEMS_PER_PAGE = 50  # Pagination for transaction list
+
+    # 退费审核模块入口（独立 Node 服务，由 Nginx 反代到同域 /refund/）
+    # 独立域名部署时改为完整 URL，例如 https://refund.example.com/
+    REFUND_URL = os.environ.get('REFUND_URL', '/refund/')
 
 
 class DevelopmentConfig(Config):

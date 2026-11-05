@@ -400,7 +400,8 @@ def _handle_ai_monthly_post():
             return jsonify({'success': False, 'error': 'DeepSeek API 密钥未配置'}), 500
 
         base_url = current_app.config.get('DEEPSEEK_BASE_URL', '') or os.environ.get('DEEPSEEK_BASE_URL', 'https://api.deepseek.com')
-        provider = DeepSeekProvider(api_key, base_url)
+        model = current_app.config.get('DEEPSEEK_MODEL')
+        provider = DeepSeekProvider(api_key, base_url, model=model)
 
         system_prompt = (
             '你是一位资深财务分析师和企业经营顾问。'
@@ -436,6 +437,26 @@ def _pct(part, total):
     return f"{part / total * 100:.1f}%"
 
 
+def _top_n_with_other(data, top_n=20, value_key='value'):
+    if not data:
+        return []
+    sorted_data = sorted(
+        data,
+        key=lambda x: (x.get('income', 0) or 0) + (x.get('expense', 0) or 0),
+        reverse=True,
+    )
+    top = sorted_data[:top_n]
+    other = sorted_data[top_n:]
+    if not other:
+        return top
+    agg = {value_key: '其他'}
+    for k in ('income', 'expense', 'net', 'total'):
+        if any(k in d for d in other) or any(k in d for d in top):
+            agg[k] = float(sum((d.get(k, 0) or 0) for d in other))
+    top.append(agg)
+    return top
+
+
 def _build_analysis_prompt(month, summary, prev, accounts, note1, note2, note3, note4, note5):
     """Build the analysis prompt with aggregated financial data."""
 
@@ -469,7 +490,7 @@ def _build_analysis_prompt(month, summary, prev, accounts, note1, note2, note3, 
 
     # By note1 (project)
     lines.append("### 三、按项目（note1）汇总")
-    for n in sorted(note1, key=lambda x: x['income'] + x['expense'], reverse=True):
+    for n in _top_n_with_other(note1, top_n=30):
         lines.append(
             f"- {n['value']}：收入 {_fmt(n['income'])}，"
             f"支出 {_fmt(n['expense'])}，净额 {_fmt(n['net'])}"
@@ -480,7 +501,7 @@ def _build_analysis_prompt(month, summary, prev, accounts, note1, note2, note3, 
     if note2:
         total_flow = summary['income'] + summary['expense']
         lines.append("### 四、按类别（note2）汇总")
-        for n in sorted(note2, key=lambda x: x['total'], reverse=True):
+        for n in _top_n_with_other(note2, top_n=20):
             lines.append(
                 f"- {n['value']}：收入 {_fmt(n['income'])}，"
                 f"支出 {_fmt(n['expense'])}（占总流水 {_pct(n['total'], total_flow)}）"
@@ -493,7 +514,7 @@ def _build_analysis_prompt(month, summary, prev, accounts, note1, note2, note3, 
     ]:
         if data:
             lines.append(f"### {label_cn}、按{label}汇总")
-            for n in sorted(data, key=lambda x: x['income'] + x['expense'], reverse=True):
+            for n in _top_n_with_other(data, top_n=30):
                 lines.append(
                     f"- {n['value']}：收入 {_fmt(n['income'])}，"
                     f"支出 {_fmt(n['expense'])}，净额 {_fmt(n['net'])}"

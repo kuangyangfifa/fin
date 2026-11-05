@@ -1,0 +1,31 @@
+; fin-remark 双模块 Supervisor 配置示例
+; 放置路径：/etc/supervisor/conf.d/fin-remark.conf
+; 注意：SECRET_KEY 占位符必须替换；退费模块财务后台口令不在此处配置，
+; 由 deploy.sh 首次生成并写入 /home/fin/data/refund/config.json，请勿把明文口令提交到仓库。
+; 修改后执行：supervisorctl reread && supervisorctl update
+
+[program:fin-remark]
+directory=/home/fin/app
+command=/home/fin/venv/bin/gunicorn -c /home/fin/gunicorn.conf.py "app:create_app('production')"
+autostart=true
+autorestart=true
+startretries=3
+user=www-data
+redirect_stderr=true
+stdout_logfile=/home/fin/logs/supervisor-fin.log
+environment=SECRET_KEY="__CHANGE_ME__",FLASK_ENV="production",DATABASE_URL="sqlite:////home/fin/data/finance.db",REFUND_URL="/refund/"
+
+[program:fin-refund]
+directory=/home/fin/app/refund
+command=/usr/bin/node /home/fin/app/refund/server.js
+autostart=true
+autorestart=true
+startretries=3
+user=www-data
+redirect_stderr=true
+stdout_logfile=/home/fin/logs/supervisor-refund.log
+environment=PORT="3000",REFUND_DATA_DIR="/home/fin/data/refund",REFUND_BASE_PATH="/refund",NODE_ENV="production"
+
+[group:fin]
+programs=fin-remark,fin-refund
+priority=999

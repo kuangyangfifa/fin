@@ -1,0 +1,13 @@
+{
+  "name": "school-refund-receipt",
+  "version": "1.0.0",
+  "description": "学校退费收款单在线应用（自托管，多角色在线签字与财务后台）",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=16"
+  },
+  "private": true
+}
