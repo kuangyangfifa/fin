@@ -1,7 +1,10 @@
 __pycache__/
 instance/
 *.pyc
-.env
+
+# 所有环境变量文件；仅保留示例模板（模板中不得写入真实密钥）
+.env*
+!.env.example
 
 # 退费模块运行时数据（单据、账号、会话、附件、含口令的 config.json）
 refund/data/
