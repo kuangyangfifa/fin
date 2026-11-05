@@ -1,3 +1,6 @@
-# 服务器脚本必须保持 LF 换行，避免 Linux 上出现 bad interpreter
+# 服务器脚本与 systemd unit 必须保持 LF 换行，避免 Linux 上出现 bad interpreter
+# 或 unit 值尾部带 \r 导致环境变量解析异常
 *.sh text eol=lf
+*.example text eol=lf
+*.service text eol=lf
 *.conf.example text eol=lf
