@@ -1,14 +1,43 @@
 # 公司账户日流水管理系统 - 部署文档
 
-> 本文档为 Flask 主模块单模块部署说明。**当前仓库已升级为「财务主系统 + 退费审核」双模块架构**，服务器部署请以仓库根目录的 `DEPLOY.md`（v2.0）与 `deploy/` 下的配置示例为准。
+> 本文档为 Flask 主模块单模块通用部署说明。**当前仓库已升级为「财务主系统 + 退费审核」双模块架构**；通用新装说明见仓库外根 `DEPLOY.md` v2.0，实际已上线的服务器请以下面「线上实况速查」为准。
 
-> **双模块速查**（完整首次部署执行清单见仓库外根 `DEPLOY.md` v2.0 第零节）
-> - 历史数据导入必须先于 `deploy.sh`：`node refund/scripts/import-backup.js --backup <备份> --data /home/fin/data/refund --public-base-url https://域名/refund`
-> - 首次部署：`sudo env ADMIN_KEY='...' PUBLIC_BASE_URL='https://域名/refund' ./deploy/deploy.sh`；日常更新加 `SKIP_PIP=1`
-> - 服务：`sudo supervisorctl status fin:` / `sudo supervisorctl restart fin:`
-> - 配置示例：`deploy/nginx.conf.example`、`deploy/supervisor.conf.example`、`deploy/gunicorn.conf.py`
-> - 数据：`/home/fin/data`（`finance.db` + `refund/`）；每次部署前的快照在 `data/backups/pre-deploy-*.tar.gz`
-> - 退费模块写锁为进程内锁，`fin-refund` 必须保持单实例
+## 线上实况速查（2026-11-05 已在阿里云 ECS 部署完成）
+
+| 项 | 实际值 |
+|---|---|
+| 服务器 | Alibaba Cloud Linux 3，`101.200.231.62`，2 核 1.8G |
+| 代码目录 | `/home/fin/fin`（Git 仓库根，`app.py` 直接在内，**不是** `/home/fin/app`） |
+| Python | `/root/miniconda3/bin/python`（全局环境，无 venv） |
+| 进程守护 | systemd `fin.service`（Gunicorn 2 workers，`127.0.0.1:8000`）、`fin-refund.service`（Node，`127.0.0.1:3000`） |
+| 对外入口 | Nginx `/etc/nginx/conf.d/finance.conf` 监听 **5050**；`/refund/` 反代 3000，其余反代 8000 |
+| 访问地址 | `http://101.200.231.62:5050/` 与 `http://101.200.231.62:5050/refund/` |
+| 数据库 | `/home/fin/fin/instance/finance_web.db`（**不要设置 `DATABASE_URL`**，否则会指向空库） |
+| 退费数据 | `/home/fin/refund-data`（单据、账号、附件、`config.json`） |
+| 密钥 | `/home/fin/fin/.env`（`DEEPSEEK_*`、`SECRET_KEY`，被 `.gitignore` 忽略） |
+| 备份 | `/home/fin/backups/`（初始备份 `initial-20261105/`；每日 `daily/fin-backup-*.tar.gz`） |
+
+**常用命令**
+
+```bash
+# 日常更新（幂等，含部署前快照 + 6 项健康检查）
+cd /home/fin/fin && git pull origin main && ./deploy/deploy-existing.sh
+
+# 服务状态 / 日志
+systemctl status fin fin-refund nginx
+journalctl -u fin -u fin-refund -n 100 --no-pager
+
+# 每日备份（crontab 02:10 已配置；WAL 安全，勿直接 cp .db）
+./deploy/backup.sh
+```
+
+**注意事项**
+
+1. **域名 `lexueisland.site` 未完成 ICP 接入备案**，任何端口用域名访问均被阿里云拦截（403）；当前仅 IP:5050 可用，签字链接地址已设为 `http://101.200.231.62:5050/refund`。备案生效后：改 `config.json` 的 `publicBaseUrl` 为 `https://域名/refund`、Nginx 补 443 与证书、重启 `fin-refund`。
+2. **微信网页授权暂不可用**（要求 80/443 + 已备案域名），备案完成后在财务后台「微信登录」面板配置 AppID/AppSecret 与 `MP_verify_*.txt`。
+3. 退费模块写锁是进程内锁，`fin-refund` **必须保持单实例**，不要扩容。
+4. 回滚：`git reset --hard d8270c3` + 用 `/home/fin/backups/initial-20261105/` 恢复数据库与配置 + `systemctl restart fin`；退费服务停掉即可恢复旧站。
+5. `deploy/deploy.sh` 与 `deploy/supervisor.conf.example` 面向「全新服务器 + venv + Supervisor」，**不适用于这台既有站点**，请勿执行。
 
 ## 一、环境要求
 
