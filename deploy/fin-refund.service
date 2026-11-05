@@ -1,0 +1,28 @@
+# 退费审核模块 Node 服务（单实例）
+# 放置路径：/etc/systemd/system/fin-refund.service
+# 启用：systemctl daemon-reload && systemctl enable --now fin-refund
+#
+# 约束：该模块用进程内写锁串行化 JSON 写入，必须保持单实例。
+# 不要通过增加 unit 实例或 cluster 方式扩容，否则会静默覆盖单据数据。
+
+[Unit]
+Description=Refund Review Node Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/home/fin/fin/refund
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+Environment="REFUND_HOST=127.0.0.1"
+Environment="REFUND_DATA_DIR=/home/fin/refund-data"
+Environment="REFUND_BASE_PATH=/refund"
+ExecStart=/usr/bin/node /home/fin/fin/refund/server.js
+Restart=always
+RestartSec=5
+SyslogIdentifier=fin-refund
+
+[Install]
+WantedBy=multi-user.target

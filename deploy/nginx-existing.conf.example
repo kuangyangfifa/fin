@@ -1,0 +1,46 @@
+# 适配已有站点：保留原 5050 对外端口，新增 /refund/ 到 Node 服务
+# 放置路径：/etc/nginx/conf.d/finance.conf（覆盖前请先备份原文件）
+# 校验：nginx -t && systemctl reload nginx
+#
+# 说明：
+#   - 备案未生效前，用 http://域名:5050 或 http://IP:5050 访问；
+#     80/443 标准端口会被阿里云备案拦截，微信网页授权需备案完成后再补 443。
+#   - proxy_pass 末尾不带斜杠，/refund/ 前缀原样传给 Node，由 server.js 剥离。
+#   - 退费附件与签名图片可能超过默认 1m，故放宽 client_max_body_size。
+
+server {
+    listen 5050;
+    server_name _;
+
+    client_max_body_size 20m;
+
+    # Flask 静态资源由 Nginx 直接提供
+    location /static/ {
+        alias /home/fin/fin/static/;
+        expires 7d;
+    }
+
+    # 退费审核模块（独立 Node 服务，仅监听回环地址）
+    location /refund/ {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+
+    # Flask 主模块
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}

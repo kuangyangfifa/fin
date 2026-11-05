@@ -1,0 +1,22 @@
+# Flask 主模块 Gunicorn 服务（适配已有 systemd 站点）
+# 放置路径：/etc/systemd/system/fin.service
+# 与原服务的差异：workers 4 → 2（SQLite 整库写锁，多 worker 易触发 database is locked）
+# SECRET_KEY 不写在此处，由应用目录下的 .env 提供（已被 .gitignore 忽略）
+#
+# 启用：systemctl daemon-reload && systemctl enable --now fin
+
+[Unit]
+Description=Gunicorn instance to serve Finance Web
+After=network.target
+
+[Service]
+User=root
+WorkingDirectory=/home/fin/fin
+Environment="PATH=/root/miniconda3/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+Environment="FLASK_ENV=production"
+ExecStart=/root/miniconda3/bin/gunicorn -w 2 -b 127.0.0.1:8000 --timeout 120 app:app
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
