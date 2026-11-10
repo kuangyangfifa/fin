@@ -177,8 +177,11 @@ def test_ai_chat_history_has_no_duplicate_current_question(
 
     assert len(provider.intent_calls) == 2
     for messages in provider.intent_calls:
-        current = [m for m in messages if m['content'].startswith(question)]
+        # 当前提问会附带 FIELD_DESCRIPTIONS，历史里的同句提问是纯文本，
+        # 用换行前缀区分两者，避免把正常的历史回放误判为重复。
+        current = [m for m in messages if m['content'].startswith(question + '\n')]
         assert len(current) == 1, '当前提问在送入模型的消息中重复出现'
+        assert messages[-1]['content'].startswith(question + '\n')
 
     second_round = provider.intent_calls[1]
     assert second_round[0]['role'] == 'user'
