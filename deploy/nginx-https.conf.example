@@ -21,6 +21,13 @@ server {
         default_type "text/plain";
     }
 
+    # 微信公众平台域名验证文件：必须能在 80 根目录直接读取，不能被 301 带走。
+    # 文件放到 /usr/share/nginx/html/MP_verify_XXXXXXXX.txt（不入库）。
+    location ~ ^/MP_verify_[A-Za-z0-9]+\.txt$ {
+        root /usr/share/nginx/html;
+        default_type "text/plain";
+    }
+
     location / {
         return 301 https://$host$request_uri;
     }
@@ -38,6 +45,13 @@ server {
     ssl_session_timeout 10m;
 
     client_max_body_size 20m;
+
+    # 微信公众平台域名验证文件（微信也可能通过 https 校验，故 443 同样托管）
+    # 文件放到 /usr/share/nginx/html/MP_verify_XXXXXXXX.txt（不入库）。
+    location ~ ^/MP_verify_[A-Za-z0-9]+\.txt$ {
+        root /usr/share/nginx/html;
+        default_type "text/plain";
+    }
 
     # Flask 静态资源由 Nginx 直接提供
     location /static/ {
