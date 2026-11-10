@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}AI月度分析报告 - 公司账户日流水管理系统{% endblock %}
+{% block title %}AI月度分析报告 - {{ APP_NAME }}{% endblock %}
 
 {% block breadcrumb %}
 <li class="breadcrumb-item"><a href="{{ url_for('reports.reports') }}">报表分析</a></li>
@@ -9,7 +9,6 @@
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Page Header -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h4 class="mb-0">AI月度分析报告</h4>
         <a href="{{ url_for('reports.reports') }}" class="btn btn-outline-secondary">
@@ -17,62 +16,103 @@
         </a>
     </div>
 
-    <!-- Month Selector Card -->
+    <!-- 配置状态与数据覆盖范围 -->
+    <div class="alert {{ 'alert-light' if ai_ready else 'alert-warning' }} py-2 small mb-3" role="alert">
+        <i class="bi {{ 'bi-check-circle' if ai_ready else 'bi-exclamation-triangle' }} me-1"></i>
+        <span>{{ ai_message }}</span>
+        {% if data_range.start %}
+        <span class="ms-3 text-muted">数据覆盖：{{ data_range.start }} 至 {{ data_range.end }}</span>
+        {% else %}
+        <span class="ms-3 text-muted">数据库暂无流水记录</span>
+        {% endif %}
+    </div>
+
+    <!-- 月份选择 -->
     <div class="card mb-4">
-        <div class="card-header">
-            <i class="bi bi-calendar-month"></i> 选择月份
-        </div>
+        <div class="card-header"><i class="bi bi-calendar-month"></i> 选择月份</div>
         <div class="card-body">
             <div class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label">月份</label>
+                <div class="col-md-3">
+                    <label class="form-label" for="monthPicker">报告月份</label>
                     <input type="month" class="form-control" id="monthPicker" value="{{ month }}">
                 </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-primary w-100" id="analyzeBtn" onclick="generateAnalysis()">
+                <div class="col-md-3">
+                    <label class="form-label" for="monthQuick">有数据的月份</label>
+                    <select class="form-select" id="monthQuick">
+                        {% for m in months %}
+                        <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ m }}{% if m in data_months %} · 有数据{% endif %}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-primary w-100" id="analyzeBtn" onclick="generateAnalysis(false)">
                         <i class="bi bi-robot"></i> 生成 AI 分析报告
                     </button>
                 </div>
+                <div class="col-md-3">
+                    <button type="button" class="btn btn-outline-secondary w-100" id="regenBtn" onclick="generateAnalysis(true)" hidden>
+                        <i class="bi bi-arrow-clockwise"></i> 重新生成
+                    </button>
+                </div>
             </div>
+            {% if not data_months %}
+            <p class="text-muted small mt-3 mb-0">当前数据库没有流水记录，生成报告前请先导入数据。</p>
+            {% endif %}
         </div>
     </div>
 
-    <!-- Loading State -->
-    <div id="loadingIndicator" class="text-center py-5" style="display:none;">
+    <!-- 加载中 -->
+    <div id="loadingIndicator" class="text-center py-5" hidden>
         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">加载中...</span>
         </div>
-        <h5 class="text-muted">AI 正在分析...</h5>
-        <p class="text-muted small">正在调用 DeepSeek 智能分析引擎处理 {{ month }} 的财务数据</p>
+        <h5 class="text-muted">AI 正在分析财务数据</h5>
+        <p class="text-muted small mb-0">首次生成通常需要 1-3 分钟，请勿关闭页面。已用时 <span id="elapsed">0</span> 秒</p>
     </div>
 
-    <!-- Error State -->
-    <div id="errorAlert" class="alert alert-danger alert-dismissible fade show" role="alert" style="display:none;">
+    <!-- 错误 -->
+    <div id="errorAlert" class="alert alert-danger alert-dismissible fade show" role="alert" hidden>
         <div class="d-flex align-items-center gap-2">
             <i class="bi bi-exclamation-circle-fill"></i>
             <span id="errorMessage"></span>
         </div>
-        <button type="button" class="btn-close" onclick="document.getElementById('errorAlert').style.display='none'"></button>
+        <button type="button" class="btn-close" onclick="hideError()"></button>
     </div>
 
-    <!-- Empty Data State -->
-    <div id="emptyData" class="card" style="display:none;">
+    <!-- 无数据 -->
+    <div id="emptyData" class="card ai-report-empty" hidden>
         <div class="card-body text-center py-5">
-            <i class="bi bi-inbox text-muted" style="font-size: 4rem;"></i>
-            <p class="text-muted mt-3" id="emptyMessage">该月份没有流水数据</p>
+            <i class="bi bi-inbox text-muted" style="font-size: 3.5rem;"></i>
+            <h5 class="mt-3 mb-2">该月份没有流水数据</h5>
+            <p class="text-muted mb-0" id="emptyMessage"></p>
         </div>
     </div>
 
-    <!-- Result Display -->
-    <div id="resultArea" style="display:none;">
+    <!-- 报告结果 -->
+    <div id="resultArea" hidden>
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
+            <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <span><i class="bi bi-file-text"></i> <span id="resultTitle"></span></span>
-                <button class="btn btn-sm btn-outline-secondary" onclick="copyAnalysis()">
-                    <i class="bi bi-clipboard"></i> 复制报告
-                </button>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-sm btn-outline-secondary" onclick="copyAnalysis()">
+                        <i class="bi bi-clipboard"></i> 复制
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="downloadMarkdown()">
+                        <i class="bi bi-download"></i> 下载 Markdown
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                        <i class="bi bi-printer"></i> 打印
+                    </button>
+                </div>
             </div>
-            <div class="card-body" id="analysisContent">
+            <div class="card-body">
+                <div class="ai-report-meta mb-3 pb-2 border-bottom">
+                    <span><i class="bi bi-cpu"></i> 模型：<span id="metaModel"></span></span>
+                    <span><i class="bi bi-clock"></i> 生成时间：<span id="metaTime"></span></span>
+                    <span><i class="bi bi-list-ol"></i> 流水：<span id="metaCount"></span> 笔</span>
+                    <span id="metaCache" class="badge bg-light text-dark" hidden>缓存报告</span>
+                </div>
+                <div id="analysisContent" class="ai-report-body"></div>
             </div>
         </div>
     </div>
@@ -81,129 +121,226 @@
 
 {% block extra_js %}
 <script>
-function generateAnalysis() {
-    var month = document.getElementById('monthPicker').value;
-    if (!month) {
-        showError('请选择月份');
-        return;
+var currentReport = { month: '', analysis: '' };
+var pendingController = null;
+var elapsedTimer = null;
+var elapsedSeconds = 0;
+
+function $(id) { return document.getElementById(id); }
+
+function setBusy(busy) {
+    var btn = $('analyzeBtn');
+    btn.disabled = busy;
+    btn.innerHTML = busy
+        ? '<span class="spinner-border spinner-border-sm"></span> 分析中...'
+        : '<i class="bi bi-robot"></i> 生成 AI 分析报告';
+    $('regenBtn').disabled = busy;
+    $('loadingIndicator').hidden = !busy;
+    if (busy) {
+        elapsedSeconds = 0;
+        $('elapsed').textContent = '0';
+        elapsedTimer = setInterval(function () {
+            elapsedSeconds += 1;
+            $('elapsed').textContent = String(elapsedSeconds);
+        }, 1000);
+    } else if (elapsedTimer) {
+        clearInterval(elapsedTimer);
+        elapsedTimer = null;
     }
+}
 
-    // Hide all result sections
-    document.getElementById('resultArea').style.display = 'none';
-    document.getElementById('emptyData').style.display = 'none';
-    document.getElementById('errorAlert').style.display = 'none';
+function hideError() { $('errorAlert').hidden = true; }
+function showError(message) {
+    $('errorMessage').textContent = message;
+    $('errorAlert').hidden = false;
+}
+function hidePanels() {
+    $('resultArea').hidden = true;
+    $('emptyData').hidden = true;
+    hideError();
+}
 
-    // Show loading
-    document.getElementById('loadingIndicator').style.display = 'block';
-    document.getElementById('analyzeBtn').disabled = true;
-    document.getElementById('analyzeBtn').innerHTML = '<span class="spinner-border spinner-border-sm"></span> 分析中...';
+function generateAnalysis(force) {
+    var month = $('monthPicker').value;
+    if (!month) { showError('请选择月份'); return; }
+    if (pendingController) { return; }
+
+    currentReport.month = month;
+    hidePanels();
+    setBusy(true);
+
+    pendingController = new AbortController();
+    var timer = setTimeout(function () { pendingController.abort(); }, 180000);
 
     fetch('{{ url_for("reports.report_ai_monthly") }}', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ month: month }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month: month, force: !!force }),
+        signal: pendingController.signal,
     })
-    .then(function(response) {
-        return response.text().then(function(text) {
-            try {
-                return { status: response.status, data: JSON.parse(text), rawText: null };
-            } catch (e) {
-                return { status: response.status, data: null, rawText: text };
-            }
+    .then(function (response) {
+        return response.text().then(function (text) {
+            try { return { status: response.status, data: JSON.parse(text), raw: null }; }
+            catch (e) { return { status: response.status, data: null, raw: text }; }
         });
     })
-    .then(function(result) {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('analyzeBtn').innerHTML = '<i class="bi bi-robot"></i> 生成 AI 分析报告';
-
+    .then(function (result) {
         if (!result.data) {
-            showError('服务器返回了非 JSON 响应 (HTTP ' + result.status + ')，请检查服务端日志');
-            console.error('Non-JSON response:', result.rawText);
+            showError('服务器返回了非 JSON 响应（HTTP ' + result.status + '），请检查服务日志');
+            console.error('Non-JSON response:', result.raw);
             return;
         }
-
         if (!result.data.success) {
-            if (result.status === 500) {
-                showError(result.data.error || '服务器内部错误');
-            } else {
-                showError(result.data.error || '请求失败');
-            }
+            showError(result.data.error || '报告生成失败');
             return;
         }
-
-        var analysis = result.data.analysis;
-
-        // Check if it's an empty/no-data response
-        if (analysis && analysis.indexOf('没有') !== -1 && analysis.length < 100) {
-            document.getElementById('emptyData').style.display = 'block';
-            document.getElementById('emptyMessage').textContent = analysis;
+        if (result.data.no_data) {
+            $('emptyMessage').textContent = result.data.message || '该月份没有流水数据';
+            $('emptyData').hidden = false;
+            $('regenBtn').hidden = true;
             return;
         }
-
-        // Display the analysis result
-        document.getElementById('resultTitle').textContent = month + ' 月度 AI 分析报告';
-        document.getElementById('analysisContent').innerHTML = formatAnalysis(analysis);
-        document.getElementById('resultArea').style.display = 'block';
+        renderReport(result.data);
     })
-    .catch(function(err) {
-        document.getElementById('loadingIndicator').style.display = 'none';
-        document.getElementById('analyzeBtn').disabled = false;
-        document.getElementById('analyzeBtn').innerHTML = '<i class="bi bi-robot"></i> 生成 AI 分析报告';
-        showError('网络请求失败: ' + err.message);
+    .catch(function (err) {
+        showError(err && err.name === 'AbortError'
+            ? '请求超时（超过 3 分钟），请稍后重试或联系管理员检查模型服务'
+            : '网络请求失败：' + (err && err.message ? err.message : '未知错误'));
+    })
+    .finally(function () {
+        clearTimeout(timer);
+        pendingController = null;
+        setBusy(false);
     });
 }
 
-function formatAnalysis(text) {
-    if (!text) return '<p class="text-muted">没有分析结果</p>';
-
-    // Escape HTML
-    text = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-
-    // Convert markdown-style formatting to HTML
-    // Headings: ### -> h5, ## -> h4, # -> h3
-    text = text.replace(/^### (.+)$/gm, '<h5 class="mt-4 mb-3">$1</h5>');
-    text = text.replace(/^## (.+)$/gm, '<h4 class="mt-4 mb-3 text-primary">$1</h4>');
-    text = text.replace(/^# (.+)$/gm, '<h3 class="mt-4 mb-3">$1</h3>');
-
-    // Bold
-    text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-
-    // Lists: - item -> bullet
-    text = text.replace(/^- (.+)$/gm, '<li>$1</li>');
-    text = text.replace(/((?:<li>.*<\/li>\n?)+)/g, '<ul class="mb-3">$1</ul>');
-
-    // Numbered lists: 1. item
-    text = text.replace(/^\d+\.\s+(.+)$/gm, '<li>$1</li>');
-
-    // Paragraphs: double newlines
-    text = text.replace(/\n\n/g, '</p><p class="mb-3">');
-
-    // Single newlines within paragraphs
-    text = text.replace(/\n/g, '<br>');
-
-    return '<p class="mb-3">' + text + '</p>';
+function renderReport(data) {
+    currentReport.analysis = data.analysis || '';
+    $('resultTitle').textContent = data.month + ' 月度 AI 分析报告';
+    $('metaModel').textContent = data.model || data.provider || '未标注';
+    $('metaTime').textContent = data.generated_at || '—';
+    $('metaCount').textContent = String(data.transaction_count || 0);
+    $('metaCache').hidden = !data.cached;
+    $('analysisContent').innerHTML = formatMarkdown(currentReport.analysis);
+    $('resultArea').hidden = false;
+    $('regenBtn').hidden = false;
 }
 
-function showError(message) {
-    document.getElementById('errorMessage').textContent = message;
-    document.getElementById('errorAlert').style.display = 'block';
+function escapeHtml(text) {
+    return String(text)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function inlineMd(text) {
+    return text
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+/* 按行渲染 Markdown：标题与列表各自成块，不再被包进 <p> 导致浏览器强制闭合 */
+function formatMarkdown(text) {
+    if (!text) { return '<p class="text-muted">没有分析结果</p>'; }
+    var lines = escapeHtml(String(text).replace(/\r\n/g, '\n')).split('\n');
+    var out = [], para = [], list = null, table = [];
+
+    function flushPara() {
+        if (para.length) { out.push('<p>' + para.join('<br>') + '</p>'); para = []; }
+    }
+    function flushList() {
+        if (list) { out.push('</' + list + '>'); list = null; }
+    }
+    function cells(row) {
+        return row.replace(/^\|/, '').replace(/\|$/, '').split('|').map(function (c) { return c.trim(); });
+    }
+    function flushTable() {
+        if (!table.length) { return; }
+        var head = cells(table[0]);
+        var body = table.slice(1).filter(function (r) { return !/^[\s:|\-]+$/.test(r); });
+        var html = '<table class="md-table"><thead><tr>';
+        head.forEach(function (c) { html += '<th>' + inlineMd(c) + '</th>'; });
+        html += '</tr></thead><tbody>';
+        body.forEach(function (r) {
+            html += '<tr>';
+            cells(r).forEach(function (c) { html += '<td>' + inlineMd(c) + '</td>'; });
+            html += '</tr>';
+        });
+        out.push(html + '</tbody></table>');
+        table = [];
+    }
+    function flushAll() { flushPara(); flushList(); flushTable(); }
+
+    lines.forEach(function (raw) {
+        var line = raw.trim();
+        if (!line) { flushAll(); return; }
+
+        if (line.charAt(0) === '|') {
+            flushPara(); flushList();
+            table.push(line);
+            return;
+        }
+        flushTable();
+
+        var heading = line.match(/^(#{1,4})\s+(.+)$/);
+        if (heading) {
+            flushAll();
+            var level = Math.min(heading[1].length + 2, 6);
+            out.push('<h' + level + '>' + inlineMd(heading[2]) + '</h' + level + '>');
+            return;
+        }
+        if (/^(-{3,}|\*{3,})$/.test(line)) { flushAll(); out.push('<hr>'); return; }
+
+        var bullet = line.match(/^[-*]\s+(.+)$/);
+        if (bullet) {
+            flushPara();
+            if (list !== 'ul') { flushList(); out.push('<ul>'); list = 'ul'; }
+            out.push('<li>' + inlineMd(bullet[1]) + '</li>');
+            return;
+        }
+        var numbered = line.match(/^\d+[.)]\s+(.+)$/);
+        if (numbered) {
+            flushPara();
+            if (list !== 'ol') { flushList(); out.push('<ol>'); list = 'ol'; }
+            out.push('<li>' + inlineMd(numbered[1]) + '</li>');
+            return;
+        }
+        flushList();
+        para.push(inlineMd(line));
+    });
+    flushAll();
+    return out.join('');
 }
 
 function copyAnalysis() {
-    var content = document.getElementById('analysisContent');
-    var text = content.innerText || content.textContent;
-    navigator.clipboard.writeText(text).then(function() {
-        var btn = document.querySelector('.btn-outline-secondary[onclick="copyAnalysis()"]');
+    var text = $('analysisContent').innerText || $('analysisContent').textContent;
+    navigator.clipboard.writeText(text).then(function () {
+        var btn = document.querySelector('[onclick="copyAnalysis()"]');
+        var old = btn.innerHTML;
         btn.innerHTML = '<i class="bi bi-check-lg"></i> 已复制';
-        setTimeout(function() {
-            btn.innerHTML = '<i class="bi bi-clipboard"></i> 复制报告';
-        }, 2000);
-    }).catch(function() {
-        alert('复制失败，请手动选择文本复制');
-    });
+        setTimeout(function () { btn.innerHTML = old; }, 2000);
+    }).catch(function () { alert('复制失败，请手动选择文本复制'); });
 }
+
+function downloadMarkdown() {
+    var header = '# ' + currentReport.month + ' 月度 AI 分析报告\n\n';
+    var blob = new Blob([header + currentReport.analysis], { type: 'text/markdown;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'AI月度分析报告-' + currentReport.month + '.md';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var quick = $('monthQuick');
+    if (quick) {
+        quick.addEventListener('change', function () {
+            if (quick.value) { $('monthPicker').value = quick.value; }
+        });
+    }
+});
 </script>
 {% endblock %}

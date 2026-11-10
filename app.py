@@ -69,6 +69,7 @@ def create_app(config_name=None):
         return {
             'now': datetime.now(),
             'refund_url': app.config.get('REFUND_URL', '/refund/'),
+            'APP_NAME': app.config.get('APP_NAME', 'LEXUE财务管理系统'),
         }
 
     # Register blueprints

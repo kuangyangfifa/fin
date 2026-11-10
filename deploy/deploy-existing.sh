@@ -168,6 +168,12 @@ if ! grep -q 'location /refund/' "$NGINX_CONF" 2>/dev/null; then
   exit 1
 fi
 nginx -t >/dev/null || { echo "错误：nginx 配置校验失败"; exit 1; }
+# 脚本不覆盖既有 Nginx 配置（站点可能另有定制），只提示超时要求。
+# AI 月报生成是长请求，60s 默认值会导致 504。
+if ! grep -q 'proxy_read_timeout 180s' "$NGINX_CONF" 2>/dev/null; then
+  echo "   提示：$NGINX_CONF 未设置 proxy_read_timeout 180s，AI 月度报告可能 504 超时"
+  echo "        请参照 deploy/nginx-existing.conf.example 手工调整后 nginx -t && systemctl reload nginx"
+fi
 systemctl daemon-reload
 systemctl enable fin-refund >/dev/null 2>&1 || true
 systemctl restart fin
@@ -194,6 +200,7 @@ check "Nginx 退费入口(5050)"   "http://127.0.0.1:5050/refund/"
 check "Nginx 退费接口(5050)"   "http://127.0.0.1:5050/refund/api/auth/wechat/status"
 check "Chart.js 本地资源"      "http://127.0.0.1:8000/static/vendor/chart.umd.min.js"
 check "Bootstrap 本地资源"     "http://127.0.0.1:8000/static/vendor/bootstrap.min.css"
+check "品牌 Logo 本地资源"     "http://127.0.0.1:8000/static/img/logo-full.png"
 if [ "$FAILED" -ne 0 ]; then
   echo "健康检查未通过：journalctl -u fin -u fin-refund -n 100；回滚快照在 $SNAP" >&2
   exit 1

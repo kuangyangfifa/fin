@@ -45,7 +45,7 @@ INTENT_SYSTEM_PROMPT = """你是一个财务数据分析助手。用户会提出
 }
 
 日期支持："本月"、"上月"、"近6个月"、"近3个月"、"今年"、"2024年3月"、"2024-01-01至2024-03-31" 等表达。
-如果用户的问题不涉及具体日期范围，start_date 和 end_date 设为 null。"""
+如果用户的问题不涉及具体日期范围，start_date 和 end_date 设为 null（系统会按最近有数据的月份统计）。"""
 
 # Available field descriptions
 FIELD_DESCRIPTIONS = """
@@ -547,7 +547,8 @@ def generate_reply(intent_type, chart_type, chart_data, query,
 2. 突出关键数据（最高/最低、对比关系）
 3. 控制在3-5句话
 4. 数字用千位分隔符格式化
-5. 输出纯文本，不要使用 Markdown 标记（**、#、- 列表等），不要写标题"""
+5. 时间表述必须使用上面给出的统计区间（如 2026年4月），不要使用「本月」「上月」等相对时间
+6. 输出纯文本，不要使用 Markdown 标记（**、#、- 列表等），不要写标题"""
 
         response = provider.chat(
             [{'role': 'user', 'content': '请根据数据生成分析解读'}],
@@ -613,7 +614,7 @@ def _template_reply(intent_type, chart_data):
         return '\n'.join(lines)
 
     else:
-        return '我目前主要支持以下分析类型：\n1. 各项目收入汇总\n2. 支出结构分析\n3. 近6个月趋势\n4. 盈亏概况\n请尝试提问相关问题。'
+        return '我目前主要支持以下分析类型：\n1. 各项目收入汇总\n2. 支出结构分析\n3. 收支趋势（按最近有数据的月份）\n4. 盈亏概况\n请尝试提问相关问题。'
 
 
 def save_message(session_id, role, content, intent_type=None, chart_type=None, chart_data=None):

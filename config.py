@@ -39,6 +39,8 @@ class Config:
     CLAUDE_MODEL = os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-20250514')
 
     # Application configuration
+    # 系统名称：所有页面标题、侧边栏、登录页统一从此处取值，改名只需改一处
+    APP_NAME = os.environ.get('APP_NAME', 'LEXUE财务管理系统').strip() or 'LEXUE财务管理系统'
     ITEMS_PER_PAGE = 50  # Pagination for transaction list
 
     # 退费审核模块入口（独立 Node 服务，由 Nginx 反代到同域 /refund/）
@@ -62,6 +64,14 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+
+    # 生产 .env 中的 AI_PROVIDER 会经 load_dotenv 污染测试环境，导致单测真实
+    # 请求大模型（慢、计费、结果不稳定）。测试默认关闭外部调用；需要验证
+    # LLM 路径的用例请用 unittest.mock 显式注入 provider。
+    AI_PROVIDER = ''
+    DEEPSEEK_API_KEY = ''
+    QWEN_API_KEY = ''
+    CLAUDE_API_KEY = ''
 
 
 config = {

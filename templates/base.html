@@ -3,7 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}公司账户日流水管理系统{% endblock %}</title>
+    <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
+
+    <!-- 品牌图标：本地托管，与退费审核模块使用同一份 logo -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-mark.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo-mark.png') }}">
 
     <!-- Bootstrap 5 CSS / Icons：本地托管，避免国内 CDN 不可达导致页面失样 -->
     <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
@@ -19,10 +24,10 @@
     <nav class="sidebar d-flex flex-column">
         <!-- Brand -->
         <div class="sidebar-brand">
-            <h4>
-                <i class="bi bi-wallet2"></i>
-                财务管理系统
-            </h4>
+            <a class="brand-plate" href="{{ url_for('main.index') }}" title="{{ APP_NAME }}">
+                <img src="{{ url_for('static', filename='img/logo-full.png') }}" alt="岳晟乐学岛 LEXUE ISLAND">
+            </a>
+            <h4>{{ APP_NAME }}</h4>
             <small>公司账户日流水管理</small>
         </div>
 

@@ -7,6 +7,8 @@
 #     80/443 标准端口会被阿里云备案拦截，微信网页授权需备案完成后再补 443。
 #   - proxy_pass 末尾不带斜杠，/refund/ 前缀原样传给 Node，由 server.js 剥离。
 #   - 退费附件与签名图片可能超过默认 1m，故放宽 client_max_body_size。
+#   - AI 月度报告单次生成可能超过 1 分钟，Flask 主模块的 proxy_read_timeout
+#     必须放宽到 180s，否则 Nginx 会在模型返回前截断请求并返回 504。
 
 server {
     listen 5050;
@@ -40,7 +42,8 @@ server {
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
         proxy_set_header X-Forwarded-Proto $scheme;
         proxy_connect_timeout 60s;
-        proxy_send_timeout 60s;
-        proxy_read_timeout 60s;
+        # 与 routes/reports.py 的 AI_REPORT_TIMEOUT=150 配套：留出余量给长报告生成
+        proxy_send_timeout 180s;
+        proxy_read_timeout 180s;
     }
 }

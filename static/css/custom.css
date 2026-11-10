@@ -1311,5 +1311,50 @@ body:not(.authenticated) .main-content {
   .ai-message-bubble { max-width: 90%; }
 }
 
+/* 品牌标识：彩色 logo 在深色侧边栏上由白底承托，与退费模块观感一致 */
+.sidebar-brand .brand-plate {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 8px 12px;
+  box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
+  text-decoration: none;
+  max-width: 100%;
+  transition: box-shadow .2s ease;
+}
+.sidebar-brand .brand-plate:hover { box-shadow: 0 8px 22px rgba(15, 23, 42, .28); }
+.sidebar-brand .brand-plate img { display: block; height: 44px; width: auto; max-width: 100%; }
+.sidebar-brand h4 { margin: 14px 0 0; font-size: 1.0625rem; letter-spacing: 0; }
+.sidebar-brand small { margin-top: 4px; }
+.login-brand-logo { display: block; height: 74px; width: auto; max-width: 100%; margin: 0 auto; }
+
+/* AI 月度分析报告：结构化排版，避免标题被包进段落造成浏览器强制闭合 */
+.ai-report-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  font-size: .8125rem;
+  color: var(--text-muted, #6b7280);
+}
+.ai-report-meta .badge { font-weight: 500; }
+.ai-report-body { font-size: .9375rem; line-height: 1.85; color: var(--text-primary, #1f2937); }
+.ai-report-body h3 { font-size: 1.35rem; font-weight: 700; margin: 0 0 18px; }
+.ai-report-body h4 { font-size: 1.15rem; font-weight: 700; margin: 26px 0 12px; color: var(--primary-color, #6366f1); }
+.ai-report-body h5 { font-size: 1rem; font-weight: 700; margin: 20px 0 10px; }
+.ai-report-body p { margin: 0 0 12px; }
+.ai-report-body ul, .ai-report-body ol { margin: 0 0 14px; padding-left: 22px; }
+.ai-report-body li { margin: 4px 0; }
+.ai-report-body strong { font-weight: 700; }
+.ai-report-body hr { border: 0; border-top: 1px solid var(--border-color, #e5e7eb); margin: 20px 0; }
+.ai-report-body .md-table { width: 100%; border-collapse: collapse; margin: 12px 0 18px; font-size: .875rem; }
+.ai-report-body .md-table th, .ai-report-body .md-table td {
+  border: 1px solid var(--border-color, #e5e7eb); padding: 7px 10px; text-align: left;
+}
+.ai-report-body .md-table th { background: var(--surface-bg, #f8fafc); font-weight: 600; }
+.ai-report-empty { border: 1px dashed var(--border-color, #cbd5e1); border-radius: 12px; }
+
 /* hidden 属性兜底：作者样式中的 display 会覆盖浏览器内建规则 */
 [hidden] { display: none !important; }

@@ -1,4 +1,4 @@
-# 公司账户日流水管理系统 - 部署文档
+# LEXUE财务管理系统 - 部署文档
 
 > 本文档为 Flask 主模块单模块通用部署说明。**当前仓库已升级为「财务主系统 + 退费审核」双模块架构**；通用新装说明见仓库外根 `DEPLOY.md` v2.0，实际已上线的服务器请以下面「线上实况速查」为准。
 
@@ -16,13 +16,20 @@
 | 退费数据 | `/home/fin/refund-data`（单据、账号、附件、`config.json`） |
 | 密钥 | `/home/fin/fin/.env`（`DEEPSEEK_*`、`AI_PROVIDER=deepseek`、`SECRET_KEY`，被 `.gitignore` 忽略） |
 | 数据库迁移版本 | `d712567bfa3f`（head，含 `ai_chat_sessions` / `ai_chat_messages`）；部署脚本每次自动 `flask db upgrade` |
+| 品牌资源 | `static/img/logo-full.png`（侧边栏、登录页）与 `logo-mark.png`（favicon）；退费模块 `refund/public/assets/logo-full.png` 为同一份文件。系统名称由 `config.py` 的 `APP_NAME` 统一控制，默认 `LEXUE财务管理系统`，可用 `.env` 的 `APP_NAME` 覆盖 |
+| AI 月报缓存 | `/home/fin/fin/instance/ai_reports/YYYY-MM.json`（不入库，可随时删除后重新生成） |
+| Nginx 超时 | 主模块 `/` 的 `proxy_send_timeout` / `proxy_read_timeout` 为 **180s**，与 AI 月报 `AI_REPORT_TIMEOUT=150` 配套；退费模块保持 60s |
+| 测试 | `/root/miniconda3/bin/python -m pytest tests/ -q`（pytest 8.3.2，测试环境强制禁用真实模型调用） |
 | 备份 | `/home/fin/backups/`（初始备份 `initial-20261105/`；每日 `daily/fin-backup-*.tar.gz`；升级前快照 `pre-deploy-*`；手工备份 `manual/`） |
 
 **常用命令**
 
 ```bash
-# 日常更新（幂等，含部署前快照、数据库迁移、8 项健康检查）
+# 日常更新（幂等，含部署前快照、数据库迁移、9 项健康检查）
 cd /home/fin/fin && git pull origin main && ./deploy/deploy-existing.sh
+
+# 回归测试（无需网络，测试环境已强制关闭真实大模型调用）
+cd /home/fin/fin && /root/miniconda3/bin/python -m pytest tests/ -q
 
 # 服务状态 / 日志
 systemctl status fin fin-refund nginx
@@ -80,6 +87,38 @@ AI_PROVIDER=deepseek
 **提问示例**
 
 `各项目收入汇总`、`支出结构分析`、`收支趋势`、`盈亏概况`、`2026年4月各项目收入`、`2026年4月1日至2026年4月22日盈亏概况`。明确写出「本月」时仍严格按自然月统计；若该月无数据会提示数据覆盖范围，不会给出空图。
+
+### AI 月度分析报告（2026-11-10 打通上线）
+
+入口：报表分析 → AI月度分析报告，或直接访问 `http://101.200.231.62:5050/reports/ai-monthly`（登录用户可用）。
+
+**此前不可用的四个原因**
+
+| 问题 | 处理 |
+|---|---|
+| 页面默认月份是「当前自然月」，而线上流水集中在 2026-04，点生成必然是空月份 | 默认改为**最近一个有流水的月份**，并提供「有数据的月份」快捷下拉 |
+| 空月份仍把全 0 数据交给模型，模型会凭空编造一份「分析报告」 | 后端 `count == 0` 直接短路，返回 `no_data` 与数据覆盖范围、可选月份，不调用模型 |
+| 硬编码 `DeepSeekProvider`，与 `AI_PROVIDER` 配置脱节；未配置时报错含内部信息 | 统一走 `get_ai_provider(timeout=150)`，与 AI 对话助手共用配置；异常只回传统一文案，细节写 `journalctl -u fin` |
+| Nginx `proxy_read_timeout 60s`，`max_tokens=4096` 的长报告必然被截断为 504 | 主模块 `/` 超时放宽到 **180s**（模板已同步）；`max_tokens` 收敛到 3000；前端 180s 超时中断并计时提示 |
+
+**功能与约束**
+
+- 报告按月份缓存到 `instance/ai_reports/YYYY-MM.json`，重复查看**不再重复计费**；数据指纹（笔数 + 收支合计）变化自动失效，页面提供「重新生成」强制刷新。缓存文件不入库，删除即恢复首次生成状态。
+- 支持复制、下载 Markdown、打印；Markdown 按行渲染，标题与列表不再被包进 `<p>`（原实现会被浏览器强制闭合，排版错乱）。
+- 报告页顶部显示 AI 配置状态与数据覆盖范围；未配置 `AI_PROVIDER` 时生成请求返回 503 与明确指引。
+- 单次生成约 1-3 分钟，属同步长请求。Nginx 超时若被改回 60s 会出现 504，部署脚本已加入检测提示。
+
+### 自动化测试（2026-11-10 建立）
+
+```bash
+cd /home/fin/fin
+/root/miniconda3/bin/python -m pytest tests/ -q
+```
+
+- `config.py` 的 `TestingConfig` 显式清空 `AI_PROVIDER` 与三家密钥：服务器 `.env` 会被 `load_dotenv()` 读入，若不隔离，单测会真实调用 DeepSeek（慢、计费、结果不稳定）。需要验证 LLM 路径的用例一律用 `unittest.mock` 注入假驱动。
+- `tests/test_ai.py`：会话/消息/图表主流程、日期解析（非补零、中文单日与区间、非法日期）、权限隔离、空库提示、默认按最近有数据月份、历史消息去重。
+- `tests/test_ai_monthly.py`：月份默认值、非法月份 400、空月份短路、生成与缓存落盘、缓存命中跳过模型、强制重生成、未配置驱动 503、异常信息脱敏、Prompt 章节编号连续。
+- `pytest==8.3.2` 已在 `requirements.txt`；服务器用 `/root/miniconda3/bin/pip install pytest==8.3.2` 单独安装，避免整份 requirements 重装影响已上线依赖。
 
 ### 微信内登录（当前正式方案，2026-11-10 确认长期使用）
 
