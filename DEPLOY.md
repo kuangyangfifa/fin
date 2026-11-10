@@ -21,7 +21,7 @@
 **常用命令**
 
 ```bash
-# 日常更新（幂等，含部署前快照、数据库迁移、9 项健康检查）
+# 日常更新（幂等，含部署前快照、数据库迁移、8 项健康检查）
 cd /home/fin/fin && git pull origin main && ./deploy/deploy-existing.sh
 
 # 服务状态 / 日志
