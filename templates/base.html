@@ -6,15 +6,15 @@
     <title>{% block title %}{{ APP_NAME }}{% endblock %}</title>
 
     <!-- 品牌图标：本地托管，与退费审核模块使用同一份 logo -->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico') }}">
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-mark.png') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo-mark.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/favicon.ico', v=STATIC_VERSION) }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='img/logo-mark.png', v=STATIC_VERSION) }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/logo-mark.png', v=STATIC_VERSION) }}">
 
     <!-- Bootstrap 5 CSS / Icons：本地托管，避免国内 CDN 不可达导致页面失样 -->
-    <link href="{{ url_for('static', filename='vendor/bootstrap.min.css') }}" rel="stylesheet">
-    <link href="{{ url_for('static', filename='vendor/bootstrap-icons.css') }}" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link href="{{ url_for('static', filename='css/custom.css') }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/bootstrap.min.css', v=STATIC_VERSION) }}" rel="stylesheet">
+    <link href="{{ url_for('static', filename='vendor/bootstrap-icons.css', v=STATIC_VERSION) }}" rel="stylesheet">
+    <!-- Custom CSS：带内容指纹，样式更新后浏览器立即取新文件，不受 Nginx 强缓存影响 -->
+    <link href="{{ url_for('static', filename='css/custom.css', v=STATIC_VERSION) }}" rel="stylesheet">
 
     {% block extra_css %}{% endblock %}
 </head>
@@ -25,7 +25,8 @@
         <!-- Brand -->
         <div class="sidebar-brand">
             <a class="brand-plate" href="{{ url_for('main.index') }}" title="{{ APP_NAME }}">
-                <img src="{{ url_for('static', filename='img/logo-full.png') }}" alt="岳晟乐学岛 LEXUE ISLAND">
+                <img src="{{ url_for('static', filename='img/logo-full.png', v=STATIC_VERSION) }}"
+                     width="136" alt="岳晟乐学岛 LEXUE ISLAND">
             </a>
             <h4>{{ APP_NAME }}</h4>
             <small>公司账户日流水管理</small>
@@ -173,8 +174,8 @@
     </main>
 
     <!-- Bootstrap 5 JS / Chart.js：本地托管（原 CDN 版本 bootstrap 5.3.2、chart.js 4.4.1） -->
-    <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='vendor/chart.umd.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='vendor/bootstrap.bundle.min.js', v=STATIC_VERSION) }}"></script>
+    <script src="{{ url_for('static', filename='vendor/chart.umd.min.js', v=STATIC_VERSION) }}"></script>
 
     <!-- Custom Scripts -->
     <script>

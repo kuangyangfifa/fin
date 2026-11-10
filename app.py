@@ -1,3 +1,4 @@
+import hashlib
 import os
 import sqlite3
 import click
@@ -41,6 +42,16 @@ def create_app(config_name=None):
     app = Flask(__name__)
     app.config.from_object(config[config_name])
 
+    # 静态资源版本号：以 custom.css 内容为准生成短指纹，模板在静态 URL 后附 ?v=。
+    # 服务器 Nginx 对 /static/ 有强缓存，若 URL 不变，改了样式用户仍会看到旧版，
+    # 典型症状是新增的尺寸规则不生效、图片按原始尺寸撑破布局。
+    css_path = os.path.join(app.static_folder or '', 'css', 'custom.css')
+    try:
+        with open(css_path, 'rb') as _css:
+            app.config['STATIC_VERSION'] = hashlib.md5(_css.read()).hexdigest()[:8]
+    except OSError:
+        app.config['STATIC_VERSION'] = '0'
+
     # Nginx 反代后正确识别 https 与客户端 IP，保证 url_for 生成的外链、
     # secure cookie 判断与微信回调地址不出错。信任 1 层代理；
     # 若前面还有阿里云 SLB / CDN，按实际代理层数调大各值。
@@ -70,6 +81,7 @@ def create_app(config_name=None):
             'now': datetime.now(),
             'refund_url': app.config.get('REFUND_URL', '/refund/'),
             'APP_NAME': app.config.get('APP_NAME', 'LEXUE财务管理系统'),
+            'STATIC_VERSION': app.config.get('STATIC_VERSION', '0'),
         }
 
     # Register blueprints

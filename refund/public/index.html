@@ -42,7 +42,7 @@
     padding:11px 16px;gap:10px;
   }
   .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;min-width:0;}
-  .brand .logo-img{height:30px;width:auto;flex:0 0 auto;display:block;}
+  .brand .logo-img{height:26px;width:auto;max-width:120px;object-fit:contain;flex:0 0 auto;display:block;}
   .brand .vline{width:1px;height:17px;background:#dfe5ef;flex:0 0 auto;}
   .brand .txt{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;font-weight:600;
     color:#5a6577;letter-spacing:.3px;}
@@ -109,9 +109,9 @@
     backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 22px rgba(0,0,0,.12);}
   .auth-hero .mark svg{width:34px;height:34px;color:#fff;}
   /* 品牌标识：白底承托，保证彩色 logo 在渐变背景上清晰 */
-  .brand-plate{display:inline-flex;align-items:center;justify-content:center;background:#fff;border-radius:14px;
-    padding:11px 18px;margin:0 auto 16px;box-shadow:0 10px 26px rgba(9,30,80,.20);}
-  .brand-plate img{display:block;height:40px;width:auto;}
+  .brand-plate{display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box;max-width:100%;overflow:hidden;background:#fff;border-radius:12px;
+    padding:8px 12px;margin:0 auto 16px;box-shadow:0 8px 20px rgba(9,30,80,.18);}
+  .brand-plate img{display:block;height:34px;width:auto;max-width:100%;object-fit:contain;}
   .auth-hero h1{margin:0;font-size:23px;font-weight:800;letter-spacing:1px;text-shadow:0 2px 8px rgba(0,0,0,.12);}
   .auth-hero p{margin:8px 0 0;font-size:13px;opacity:.92;}
 
@@ -283,7 +283,7 @@
   .sign-hero{background:linear-gradient(150deg,#2b6cff,#6a97ff);color:#fff;padding:22px 18px 26px;}
   .sign-brand{display:inline-flex;align-items:center;gap:8px;background:#fff;border-radius:11px;padding:7px 12px;
     box-shadow:0 8px 20px rgba(9,30,80,.18);margin-bottom:14px;}
-  .sign-brand img{display:block;height:21px;width:auto;}
+  .sign-brand img{display:block;height:19px;width:auto;max-width:100%;object-fit:contain;}
   .sign-brand span{font-size:11.5px;font-weight:700;color:var(--brand);letter-spacing:.4px;white-space:nowrap;}
   .sign-hero .ey{font-size:12px;opacity:.9;}
   .sign-hero h1{margin:4px 0 0;font-size:20px;font-weight:800;letter-spacing:.5px;}
@@ -298,7 +298,7 @@
   /* 收据（仿原单据） */
   .receipt{border:1.5px solid #2b3346;border-radius:10px;overflow:hidden;background:#fff;margin-top:6px;}
   .receipt .rlogo{text-align:center;padding:14px 10px 2px;}
-  .receipt .rlogo img{display:block;height:40px;width:auto;margin:0 auto;}
+  .receipt .rlogo img{display:block;height:34px;width:auto;max-width:90%;object-fit:contain;margin:0 auto;}
   .receipt .rtitle{text-align:center;font-size:19px;font-weight:800;padding:14px 10px 4px;letter-spacing:3px;}
   .receipt .rsub{text-align:center;color:var(--muted);font-size:12px;padding-bottom:10px;border-bottom:1px solid var(--line);}
   .receipt table{width:100%;border-collapse:collapse;}
@@ -348,7 +348,7 @@
     #app{max-width:100%;box-shadow:none;}
     .receipt{border-color:#000;page-break-inside:avoid;margin-top:0;}
     .receipt .rlogo{padding:8px 0 0;}
-    .receipt .rlogo img{height:32px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    .receipt .rlogo img{height:28px;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
     .receipt .rtitle{padding:9px 10px 3px;}
   }
   @media (max-width:480px){

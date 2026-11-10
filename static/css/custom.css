@@ -1311,24 +1311,43 @@ body:not(.authenticated) .main-content {
   .ai-message-bubble { max-width: 90%; }
 }
 
-/* 品牌标识：彩色 logo 在深色侧边栏上由白底承托，与退费模块观感一致 */
+/* 品牌标识：彩色 logo 在深色侧边栏上由白底承托，与退费模块观感一致。
+   白底牌固定尺寸 + 图片 object-fit: contain，等比缩放且永不溢出容器；
+   模板 img 上的 width 属性是 CSS 未加载时的兜底，避免原图 585px 撑破侧栏。 */
 .sidebar-brand .brand-plate {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 8px 12px;
-  box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
-  text-decoration: none;
+  box-sizing: border-box;
+  width: 132px;
   max-width: 100%;
+  height: 46px;
+  padding: 5px 10px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, .16);
+  text-decoration: none;
+  overflow: hidden;
   transition: box-shadow .2s ease;
 }
-.sidebar-brand .brand-plate:hover { box-shadow: 0 8px 22px rgba(15, 23, 42, .28); }
-.sidebar-brand .brand-plate img { display: block; height: 44px; width: auto; max-width: 100%; }
-.sidebar-brand h4 { margin: 14px 0 0; font-size: 1.0625rem; letter-spacing: 0; }
+.sidebar-brand .brand-plate:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, .26); }
+.sidebar-brand .brand-plate img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+.sidebar-brand h4 { margin: 12px 0 0; font-size: 1.0625rem; letter-spacing: 0; }
 .sidebar-brand small { margin-top: 4px; }
-.login-brand-logo { display: block; height: 74px; width: auto; max-width: 100%; margin: 0 auto; }
+.login-brand-logo {
+  display: block;
+  width: 168px;
+  max-width: 100%;
+  height: 62px;
+  object-fit: contain;
+  margin: 0 auto;
+}
 
 /* AI 月度分析报告：结构化排版，避免标题被包进段落造成浏览器强制闭合 */
 .ai-report-meta {

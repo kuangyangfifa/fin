@@ -16,7 +16,8 @@
 | 退费数据 | `/home/fin/refund-data`（单据、账号、附件、`config.json`） |
 | 密钥 | `/home/fin/fin/.env`（`DEEPSEEK_*`、`AI_PROVIDER=deepseek`、`SECRET_KEY`，被 `.gitignore` 忽略） |
 | 数据库迁移版本 | `d712567bfa3f`（head，含 `ai_chat_sessions` / `ai_chat_messages`）；部署脚本每次自动 `flask db upgrade` |
-| 品牌资源 | `static/img/logo-full.png`（侧边栏、登录页）与 `logo-mark.png`（favicon）；退费模块 `refund/public/assets/logo-full.png` 为同一份文件。系统名称由 `config.py` 的 `APP_NAME` 统一控制，默认 `LEXUE财务管理系统`，可用 `.env` 的 `APP_NAME` 覆盖 |
+| 品牌资源 | `static/img/logo-full.png`（侧边栏、登录页）与 `logo-mark.png`（favicon）；退费模块 `refund/public/assets/logo-full.png` 为同一份文件。系统名称由 `config.py` 的 `APP_NAME` 统一控制，默认 `LEXUE财务管理系统`，可用 `.env` 的 `APP_NAME` 覆盖。侧栏白底牌固定 132×46px、图片 `object-fit:contain`，登录页 168×62px |
+| 静态资源缓存 | 模板所有静态 URL 带 `?v={{ STATIC_VERSION }}`（`custom.css` 内容 MD5 短指纹，见 `app.py`）；Nginx 对 `/static/**.css/js` 为 `expires 1h`，图片字体为 7d。改样式后无需用户手动强刷 |
 | AI 月报缓存 | `/home/fin/fin/instance/ai_reports/YYYY-MM.json`（不入库，可随时删除后重新生成） |
 | Nginx 超时 | 主模块 `/` 的 `proxy_send_timeout` / `proxy_read_timeout` 为 **180s**，与 AI 月报 `AI_REPORT_TIMEOUT=150` 配套；退费模块保持 60s |
 | 测试 | `/root/miniconda3/bin/python -m pytest tests/ -q`（pytest 8.3.2，测试环境强制禁用真实模型调用） |
@@ -363,3 +364,11 @@ server {
 
 ### Q3: 上传 Excel 报错？
 Nginx 配置中确认设置了 `client_max_body_size 16M;`（与代码中 `MAX_CONTENT_LENGTH` 一致）。
+
+### Q4: 改了 CSS / 换了 logo，页面却没变化，甚至图片撑破侧栏？
+浏览器使用了 `/static/` 的强缓存旧文件。2026-11-10 曾因 `expires 7d` 且 CSS 的 URL 不含版本号，导致新增的 logo 尺寸规则未生效、585×218 原图按原始尺寸渲染并溢出 280px 侧栏。现已双重处理：
+
+- `app.py` 以 `custom.css` 内容 MD5 生成 `STATIC_VERSION`，所有静态 URL 带 `?v=`，文件一改 URL 即变；
+- `deploy/nginx-existing.conf.example` 把 CSS/JS 的缓存降到 `expires 1h`，图片字体仍为 7d。
+
+若线上配置仍是旧版（只有单个 `location /static/ { expires 7d; }`），需按模板覆盖 `/etc/nginx/conf.d/finance.conf` 后 `nginx -t && systemctl reload nginx`。用户端如仍看到旧样式，强制刷新一次（Ctrl+F5）即可，之后不必再手动刷新。

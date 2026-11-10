@@ -7,7 +7,8 @@
     <div class="glass-card">
         <div class="text-center mb-4">
             <div class="mb-3">
-                <img src="{{ url_for('static', filename='img/logo-full.png') }}" alt="岳晟乐学岛 LEXUE ISLAND" class="login-brand-logo">
+                <img src="{{ url_for('static', filename='img/logo-full.png', v=STATIC_VERSION) }}"
+                     width="168" alt="岳晟乐学岛 LEXUE ISLAND" class="login-brand-logo">
             </div>
             <h4 class="mb-1 fw-bold">{{ APP_NAME }}</h4>
             <p class="text-muted small">请登录以继续使用</p>

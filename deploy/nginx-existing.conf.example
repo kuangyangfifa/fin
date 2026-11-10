@@ -16,7 +16,14 @@ server {
 
     client_max_body_size 20m;
 
-    # Flask 静态资源由 Nginx 直接提供
+    # 样式与脚本可能随版本调整，短缓存；模板静态 URL 已带 ?v= 内容指纹。
+    # 二者配合可避免「改了 CSS 但浏览器仍用 7 天前缓存」导致布局错乱。
+    location ~* ^/static/.+\.(css|js)$ {
+        root /home/fin/fin;
+        expires 1h;
+    }
+
+    # 图片、字体等内容稳定，可长缓存
     location /static/ {
         alias /home/fin/fin/static/;
         expires 7d;
