@@ -5,8 +5,9 @@
 #       用 systemd fin.service + miniconda Python + Nginx 5050 反代，
 #       数据库在 <APP_DIR>/instance/finance_web.db（被 .gitignore 忽略）。
 #
-# 与 deploy/deploy.sh 的区别：不建 venv、不迁移数据库、不依赖 Supervisor、
+# 与 deploy/deploy.sh 的区别：不建 venv、不依赖 Supervisor、
 #       不用 www-data 用户、不创建空的 finance.db。
+#       数据库会执行 Alembic 迁移（幂等），因此新增表无需再手工补建。
 #
 # 用法：
 #   cd /home/fin/fin && git pull origin main
@@ -68,16 +69,58 @@ else
   echo "[3/7] 跳过依赖安装（如需补装：INSTALL_PIP=1）"
 fi
 
-# 4. 数据库：只校验，绝不创建或迁移
-echo "[4/7] 校验 Flask 数据库..."
+# 4. 数据库：WAL 安全备份 + Alembic 迁移（幂等）
+echo "[4/7] 校验并迁移 Flask 数据库..."
 DB_FILE="$APP_DIR/instance/finance_web.db"
 if [ -f "$DB_FILE" ]; then
   echo "   已存在：$DB_FILE（保持原路径，不设置 DATABASE_URL）"
+  "$PY" - "$DB_FILE" "$SNAP/finance_web-pre-migrate.db" <<'PY'
+import sqlite3, sys
+src = sqlite3.connect(sys.argv[1])
+dst = sqlite3.connect(sys.argv[2])
+src.backup(dst)   # 在线 WAL 安全备份，迁移前的最后一道保险
+dst.close(); src.close()
+PY
+  # 旧站点从未跑过迁移，alembic_version 为空但表结构已含基线内容。
+  # 直接 upgrade 会重复建表/加列报错，需先按实际结构 stamp 到对应版本。
+  BASELINE="$(cd "$APP_DIR" && "$PY" - "$DB_FILE" <<'PY'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+tables = {r[0] for r in c.execute("select name from sqlite_master where type='table'")}
+version = c.execute("select version_num from alembic_version").fetchone() \
+    if 'alembic_version' in tables else None
+if version and version[0]:
+    print('managed')
+else:
+    cols = {r[1] for r in c.execute('pragma table_info(transactions)')} \
+        if 'transactions' in tables else set()
+    if {'ai_chat_sessions', 'ai_chat_messages'} <= tables:
+        print('head')
+    elif 'note_options' in tables and {'note3', 'note4', 'note5'} <= cols:
+        print('55b49e43fd3b')
+    else:
+        print('unknown')
+PY
+)"
+  case "$BASELINE" in
+    managed)
+      echo "   alembic_version 已有记录，跳过基线标记" ;;
+    55b49e43fd3b|head)
+      echo "   alembic_version 为空，按现有结构标记基线：$BASELINE"
+      (cd "$APP_DIR" && "$PY" -m flask --app app db stamp "$BASELINE") ;;
+    *)
+      echo "错误：数据库结构与迁移基线不匹配，已停止部署。请人工核对后重试" >&2
+      echo "      迁移前备份：$SNAP/finance_web-pre-migrate.db" >&2
+      exit 1 ;;
+  esac
 else
   echo "   未发现数据库，按默认路径初始化..."
   (cd "$APP_DIR" && "$PY" -c \
     "from app import create_app; from models import db; a=create_app('production'); a.app_context().push(); db.create_all(); print('   数据库表已创建')")
+  (cd "$APP_DIR" && "$PY" -m flask --app app db stamp head)
 fi
+(cd "$APP_DIR" && "$PY" -m flask --app app db upgrade)
+echo "   数据库已同步至迁移 head"
 
 # 5. 退费模块配置与 SECRET_KEY（均仅首次写入）
 echo "[5/7] 校验运行时配置..."
@@ -106,6 +149,10 @@ if ! grep -q '^SECRET_KEY=' "$ENV_FILE"; then
   echo "   已追加 SECRET_KEY 到 $ENV_FILE（现存会话需重新登录）"
 fi
 chmod 600 "$ENV_FILE"
+if ! grep -q '^AI_PROVIDER=' "$ENV_FILE"; then
+  echo "   提示：未配置 AI_PROVIDER，AI 对话分析仅使用关键词兜底"
+  echo "         启用方式：在 $ENV_FILE 追加 AI_PROVIDER=deepseek（密钥已存在时）"
+fi
 
 # 6. 服务配置与重启
 echo "[6/7] 安装服务配置并重启..."
@@ -145,6 +192,8 @@ check "Node 退费接口"          "http://127.0.0.1:3000/refund/api/auth/wechat
 check "Nginx 主模块(5050)"     "http://127.0.0.1:5050/login"
 check "Nginx 退费入口(5050)"   "http://127.0.0.1:5050/refund/"
 check "Nginx 退费接口(5050)"   "http://127.0.0.1:5050/refund/api/auth/wechat/status"
+check "Chart.js 本地资源"      "http://127.0.0.1:8000/static/vendor/chart.umd.min.js"
+check "Bootstrap 本地资源"     "http://127.0.0.1:8000/static/vendor/bootstrap.min.css"
 if [ "$FAILED" -ne 0 ]; then
   echo "健康检查未通过：journalctl -u fin -u fin-refund -n 100；回滚快照在 $SNAP" >&2
   exit 1

@@ -2,13 +2,22 @@
 
 import json
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from flask import current_app
-from sqlalchemy import func, extract
+from sqlalchemy import func
 
 from models import db, Transaction, AiChatSession, AiChatMessage
 from utils.ai_provider import get_ai_provider
-from utils.reporting import get_last_6_months_trends, month_format
+from utils.reporting import month_format
+
+
+def _utcnow():
+    """Naive UTC now, replacing deprecated datetime.utcnow().
+
+    The models' default timestamps are naive UTC; keep the same convention
+    so existing rows and new rows stay directly comparable.
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 # Intent type descriptions for LLM prompt
 INTENT_DESCRIPTIONS = {
@@ -86,33 +95,40 @@ def parse_date_expression(expr):
     if '今年' in expr:
         return date(today.year, 1, 1), date(today.year, 12, 31)
 
+    # 区间必须放在「YYYY年M月」之前：否则 "2024年1月1日至2024年3月31日"
+    # 会被年月正则截断成 2024 年 1 月。
+    # 用 findall 而非 fromisoformat：后者要求月份、日期必须补零，
+    # 而大模型与用户常写 "2024-1-1"，直接解析会抛 ValueError 落回 None。
+    if re.search(r'至|到|~|～|—|－', expr):
+        found = re.findall(r'(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?', expr)
+        if len(found) >= 2:
+            try:
+                s = date(*(int(x) for x in found[0]))
+                e = date(*(int(x) for x in found[-1]))
+                return (s, e) if s <= e else (e, s)
+            except ValueError:
+                pass
+
     # "YYYY年M月"
-    match = re.match(r'(\d{4})年(\d{1,2})月', expr)
+    match = re.match(r'^(\d{4})年(\d{1,2})月?$', expr)
     if match:
         y, m = int(match.group(1)), int(match.group(2))
-        return date(y, m, 1), _get_month_end(y, m)
+        try:
+            return date(y, m, 1), _get_month_end(y, m)
+        except ValueError:
+            return None, None
 
     # "YYYY年"
-    match = re.match(r'(\d{4})年$', expr)
+    match = re.match(r'^(\d{4})年$', expr)
     if match:
         y = int(match.group(1))
         return date(y, 1, 1), date(y, 12, 31)
 
-    # "YYYY-MM-DD至YYYY-MM-DD"
-    match = re.match(r'(\d{4}-\d{1,2}-\d{1,2})\s*至\s*(\d{4}-\d{1,2}-\d{1,2})', expr)
-    if match:
+    # 单日："YYYY-MM-DD" / "YYYY-M-D" / "YYYY/M/D" / "YYYY年M月D日"
+    single = re.match(r'^(\d{4})[-/.年](\d{1,2})[-/.月](\d{1,2})日?$', expr)
+    if single:
         try:
-            s = date.fromisoformat(match.group(1))
-            e = date.fromisoformat(match.group(2))
-            return s, e
-        except ValueError:
-            pass
-
-    # "YYYY-MM-DD"
-    match = re.match(r'(\d{4}-\d{1,2}-\d{1,2})$', expr)
-    if match:
-        try:
-            d = date.fromisoformat(match.group(1))
+            d = date(*(int(x) for x in single.groups()))
             return d, d
         except ValueError:
             pass
@@ -172,12 +188,21 @@ def analyze_intent(query, session_id=None):
     if provider:
         messages = []
         if session_id:
+            # 同一秒内多条消息时 created_at 相同，补 id 作为二级排序保证顺序稳定。
             history = AiChatMessage.query.filter_by(session_id=session_id).order_by(
-                AiChatMessage.created_at.desc()
-            ).limit(8).all()
-            for msg in reversed(history):
+                AiChatMessage.created_at.desc(), AiChatMessage.id.desc()
+            ).limit(9).all()
+            # 路由层是「先落库用户消息、再分析」，最新一条就是当前提问。
+            # 去掉它，避免把同一句话重复喂给模型。
+            if history and history[0].role == 'user' \
+                    and (history[0].content or '').strip() == query.strip():
+                history = history[1:]
+            for msg in reversed(history[:8]):
                 if msg.role in ('user', 'assistant') and msg.content:
                     messages.append({'role': msg.role, 'content': msg.content})
+            # 对话历史须以 user 开头，否则部分兼容接口会拒绝请求。
+            while messages and messages[0]['role'] != 'user':
+                messages.pop(0)
         messages.append({'role': 'user', 'content': query + '\n\n' + FIELD_DESCRIPTIONS})
         response = provider.chat(messages, max_tokens=512, system=INTENT_SYSTEM_PROMPT)
         parsed = provider.parse_json_response(response) if response else None
@@ -185,40 +210,53 @@ def analyze_intent(query, session_id=None):
             intent_type = parsed['intent_type']
             parameters = parsed.get('parameters', {}) or {}
 
-    # Step 2: Fallback
-    if not intent_type:
-        intent_type, parameters = fallback_intent_recognition(query)
+    # Step 2: Fallback / 白名单校验（模型可能返回未定义的意图名）
+    if intent_type not in INTENT_DESCRIPTIONS:
+        intent_type, fallback_params = fallback_intent_recognition(query)
+        if not parameters:
+            parameters = fallback_params
 
     # Step 3: Parse dates
     start_date = None
     end_date = None
+    date_range_note = None
 
     # Check if LLM returned date strings
     raw_start = parameters.get('start_date') if isinstance(parameters, dict) else None
     raw_end = parameters.get('end_date') if isinstance(parameters, dict) else None
 
     if raw_start:
-        start_date, _ = parse_date_expression(raw_start)
+        start_date, _ = parse_date_expression(str(raw_start))
     if raw_end:
-        _, end_date = parse_date_expression(raw_end)
+        _, end_date = parse_date_expression(str(raw_end))
 
     # If no dates were extracted, try parsing the full query for common expressions
     if not start_date and not end_date:
-        # Try common date expressions from the query itself
-        for expr in ['本月', '上月', '今年', '近6个月', '近3个月']:
+        for expr in ['本月', '上月', '今年', '近12个月', '近6个月', '近3个月']:
             if expr in query:
                 start_date, end_date = parse_date_expression(expr)
                 break
 
-    # Default to "本月" for specific query types if no date specified
+    # 未指定日期时按「最近有数据的月份」统计，而不是硬编码本月。
+    # 线上数据可能整体落在历史月份，默认「本月」会让每个快捷提问都返回空图。
     if not start_date and not end_date and intent_type in ('project_income', 'expense_structure', 'profit_loss'):
-        start_date, end_date = parse_date_expression('本月')
+        data_min, data_max = get_data_date_range()
+        if data_max:
+            start_date = date(data_max.year, data_max.month, 1)
+            end_date = _get_month_end(data_max.year, data_max.month)
+            date_range_note = (
+                f'数据覆盖 {data_min.isoformat()} 至 {data_max.isoformat()}，'
+                f'本次按最近有数据月份 {start_date.strftime("%Y-%m")} 统计'
+            )
 
     # Step 4: Execute SQL template query
     chart_type, chart_data = execute_query(intent_type, start_date, end_date)
 
     # Step 5: Generate reply text
-    reply_text = generate_reply(intent_type, chart_data, query)
+    reply_text = generate_reply(
+        intent_type, chart_type, chart_data, query,
+        start_date=start_date, end_date=end_date, date_range_note=date_range_note,
+    )
 
     return {
         'intent_type': intent_type,
@@ -227,10 +265,21 @@ def analyze_intent(query, session_id=None):
             'start_date': start_date.isoformat() if start_date else None,
             'end_date': end_date.isoformat() if end_date else None,
         },
+        'date_range_note': date_range_note,
         'chart_type': chart_type,
         'chart_data': chart_data,
         'reply_text': reply_text,
     }
+
+
+def get_data_date_range():
+    """Return (min_date, max_date) of all transactions, or (None, None)."""
+    row = db.session.query(
+        func.min(Transaction.date), func.max(Transaction.date)
+    ).first()
+    if not row or not row[0]:
+        return None, None
+    return row[0], row[1]
 
 
 def execute_query(intent_type, start_date=None, end_date=None):
@@ -364,7 +413,18 @@ def _query_trend(start_date=None, end_date=None):
         ).filter(*date_filters).group_by(month_expr).order_by(month_expr).all()
         trends = [{'month': r[0], 'income': float(r[1] or 0), 'expense': float(r[2] or 0)} for r in rows]
     else:
-        trends = get_last_6_months_trends()
+        # 不按「日历近 6 个月」补零：数据若集中在历史月份，那样只会得到六根空柱。
+        # 直接取真实存在交易的最近 6 个月。
+        month_expr = month_format(Transaction.date).label('month')
+        rows = db.session.query(
+            month_expr,
+            func.coalesce(func.sum(Transaction.income), 0),
+            func.coalesce(func.sum(Transaction.expense), 0),
+        ).group_by(month_expr).order_by(month_expr.desc()).limit(6).all()
+        trends = [
+            {'month': r[0], 'income': float(r[1] or 0), 'expense': float(r[2] or 0)}
+            for r in reversed(rows)
+        ]
 
     labels = [t['month'] for t in trends]
     incomes = [t['income'] for t in trends]
@@ -420,21 +480,64 @@ def _query_general():
     return None, {}
 
 
-def generate_reply(intent_type, chart_data, query):
+def _is_empty_chart(chart_type, chart_data):
+    """Whether a query produced no analysable rows."""
+    if not chart_data:
+        return True
+    if chart_type == 'table':
+        return not chart_data.get('table')
+    return not chart_data.get('labels')
+
+
+def _empty_data_reply(start_date, end_date):
+    """Explain an empty result and point the user at the period that has data."""
+    data_min, data_max = get_data_date_range()
+    if data_min is None or data_max is None:
+        return '系统中尚无交易数据，请先导入流水后再使用 AI 分析。'
+
+    period = ''
+    if start_date and end_date:
+        period = f'查询区间 {start_date.isoformat()} 至 {end_date.isoformat()} 内'
+
+    return (
+        f'{period}没有查询到可分析的数据。\n'
+        f'当前流水覆盖 {data_min.isoformat()} 至 {data_max.isoformat()}，'
+        f'可尝试提问「{data_max.year}年{data_max.month}月各项目收入」'
+        f'或「{data_max.year}年支出结构分析」。'
+    )
+
+
+def generate_reply(intent_type, chart_type, chart_data, query,
+                   start_date=None, end_date=None, date_range_note=None):
     """Generate a text reply based on intent type and query results.
 
     If AI provider is available, use LLM to generate natural language response.
     Otherwise, use template-based responses.
     """
+    # 一般性问题不查库，直接给能力说明
+    if chart_type is None or intent_type == 'general':
+        return _template_reply(intent_type, chart_data)
+
+    # 空结果不再交给大模型：否则会生成一大段「数据缺失」的报告，
+    # 用户会误以为功能坏了。
+    if _is_empty_chart(chart_type, chart_data):
+        return _empty_data_reply(start_date, end_date)
+
     provider = get_ai_provider()
 
-    if provider and chart_data:
-        # Use LLM to generate a natural language summary
+    if provider:
         data_summary = json.dumps(chart_data, ensure_ascii=False)
+        period = ''
+        if start_date and end_date:
+            period = f'统计区间：{start_date.isoformat()} 至 {end_date.isoformat()}'
+        if date_range_note:
+            period = (period + '；' if period else '') + date_range_note
+
         system_prompt = f"""你是一个财务数据分析助手。根据以下查询结果，用简洁的中文生成一段数据分析报告。
 
 查询类型: {intent_type}
 用户问题: {query}
+{period}
 
 数据:
 {data_summary}
@@ -443,7 +546,8 @@ def generate_reply(intent_type, chart_data, query):
 1. 用简洁流畅的中文描述
 2. 突出关键数据（最高/最低、对比关系）
 3. 控制在3-5句话
-4. 数字用千位分隔符格式化"""
+4. 数字用千位分隔符格式化
+5. 输出纯文本，不要使用 Markdown 标记（**、#、- 列表等），不要写标题"""
 
         response = provider.chat(
             [{'role': 'user', 'content': '请根据数据生成分析解读'}],
@@ -485,12 +589,13 @@ def _template_reply(intent_type, chart_data):
 
     elif intent_type == 'trend':
         trends = chart_data.get('labels', [])
-        incomes = chart_data.get('datasets', [{}])[0].get('data', [])
-        expenses = chart_data.get('datasets', [{}])[1].get('data', [])
+        datasets = chart_data.get('datasets', [])
+        incomes = datasets[0].get('data', []) if datasets else []
+        expenses = datasets[1].get('data', []) if len(datasets) > 1 else []
         if not trends:
             return '没有可用的趋势数据。'
 
-        lines = ['近6个月收支趋势：']
+        lines = ['最近有数据月份的收支趋势：']
         for month, inc, exp in zip(trends, incomes, expenses):
             net = inc - exp
             arrow = '↑' if net >= 0 else '↓'
@@ -528,11 +633,10 @@ def save_message(session_id, role, content, intent_type=None, chart_type=None, c
     )
     db.session.add(msg)
 
-    # Update session's updated_at
-    session = AiChatSession.query.get(session_id)
+    # Update session's updated_at（用 db.session.get 取代已弃用的 Query.get）
+    session = db.session.get(AiChatSession, session_id)
     if session:
-        from datetime import datetime
-        session.updated_at = datetime.utcnow()
+        session.updated_at = _utcnow()
 
     db.session.commit()
     return msg

@@ -1,14 +1,96 @@
 """AI chat blueprint routes."""
 
-from datetime import datetime
-from flask import Blueprint, render_template, request, jsonify
+import json
+from datetime import datetime, timezone
+from flask import Blueprint, render_template, request, jsonify, current_app
 from flask_login import login_required, current_user
 
 from models import db, AiChatSession, AiChatMessage
 from utils.ai_analyzer import analyze_intent, save_message
+from utils.ai_provider import get_ai_provider
 from utils.decorators import admin_required
 
 ai_bp = Blueprint('ai', __name__)
+
+
+def _utcnow():
+    """Naive UTC now; matches the timestamp convention used by the models."""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+PROVIDER_META = {
+    'deepseek': ('DeepSeek', 'DEEPSEEK_API_KEY', 'DEEPSEEK_MODEL', 'DEEPSEEK_BASE_URL'),
+    'qwen': ('通义千问', 'QWEN_API_KEY', 'QWEN_MODEL', 'QWEN_BASE_URL'),
+    'claude': ('Claude', 'CLAUDE_API_KEY', 'CLAUDE_MODEL', None),
+}
+
+
+def _ai_config_snapshot():
+    """Build a key-free description of the current AI configuration."""
+    cfg = current_app.config
+    name = (cfg.get('AI_PROVIDER') or '').strip().lower()
+    meta = PROVIDER_META.get(name)
+
+    if not name:
+        return {
+            'provider': '', 'provider_label': '未配置', 'model': '',
+            'base_url': '', 'api_key_configured': False,
+            'state': 'disabled',
+            'message': '未设置 AI_PROVIDER，当前仅使用关键词匹配与模板回复',
+        }
+
+    label, key_field, model_field, url_field = meta or (name, '', '', None)
+    has_key = bool(cfg.get(key_field)) if key_field else False
+    info = {
+        'provider': name,
+        'provider_label': label,
+        'model': cfg.get(model_field, '') if model_field else '',
+        'base_url': cfg.get(url_field, '') if url_field else '',
+        'api_key_configured': has_key,
+        'state': 'ready',
+        'message': '配置就绪',
+    }
+
+    if not meta:
+        info.update(state='error', message=f'未知的 AI_PROVIDER：{name}')
+    elif not has_key:
+        info.update(state='error', message=f'缺少 {key_field}，请在 .env 中补齐后重启服务')
+    else:
+        try:
+            if get_ai_provider() is None:
+                info.update(state='error', message='驱动初始化失败，请查看服务日志')
+        except Exception as exc:
+            info.update(state='error', message=f'驱动初始化异常：{type(exc).__name__}: {exc}')
+    return info
+
+
+@ai_bp.route('/ai/status', methods=['GET'])
+@login_required
+@admin_required
+def ai_status():
+    """Report AI configuration status (never returns the API key)."""
+    return jsonify(_ai_config_snapshot())
+
+
+@ai_bp.route('/ai/status/ping', methods=['POST'])
+@login_required
+@admin_required
+def ai_status_ping():
+    """Run one tiny real request against the configured model."""
+    provider = get_ai_provider()
+    if provider is None:
+        return jsonify({'ok': False, 'message': '未配置可用的 AI 驱动，请先检查 /ai/status'})
+
+    reply = provider.chat(
+        [{'role': 'user', 'content': '只回复两个字：正常'}],
+        max_tokens=16,
+        system='你是连通性测试助手，按要求原样回复',
+    )
+    return jsonify({
+        'ok': bool(reply),
+        'reply': reply or '',
+        'message': '模型连通正常' if reply else '模型未返回内容，请查看服务日志',
+    })
 
 
 @ai_bp.route('/ai')
@@ -82,7 +164,6 @@ def get_session(session_id):
             'created_at': msg.created_at.strftime('%Y-%m-%d %H:%M:%S'),
         }
         if msg.chart_data_json:
-            import json
             msg_data['chart_data'] = json.loads(msg.chart_data_json)
         messages.append(msg_data)
 
@@ -143,7 +224,7 @@ def send_message(session_id):
     if session.title == '新对话':
         # Use first few chars of user query as title
         session.title = user_query[:30] + ('...' if len(user_query) > 30 else '')
-        session.updated_at = datetime.utcnow()
+        session.updated_at = _utcnow()
         db.session.commit()
 
     response = {
@@ -151,6 +232,7 @@ def send_message(session_id):
         'chart_type': result['chart_type'],
         'chart_data': result['chart_data'],
         'intent_type': result['intent_type'],
+        'date_range_note': result.get('date_range_note'),
     }
 
     return jsonify(response)

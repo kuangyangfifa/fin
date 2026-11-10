@@ -14,13 +14,14 @@
 | 访问地址 | `http://101.200.231.62:5050/` 与 `http://101.200.231.62:5050/refund/` |
 | 数据库 | `/home/fin/fin/instance/finance_web.db`（**不要设置 `DATABASE_URL`**，否则会指向空库） |
 | 退费数据 | `/home/fin/refund-data`（单据、账号、附件、`config.json`） |
-| 密钥 | `/home/fin/fin/.env`（`DEEPSEEK_*`、`SECRET_KEY`，被 `.gitignore` 忽略） |
-| 备份 | `/home/fin/backups/`（初始备份 `initial-20261105/`；每日 `daily/fin-backup-*.tar.gz`） |
+| 密钥 | `/home/fin/fin/.env`（`DEEPSEEK_*`、`AI_PROVIDER=deepseek`、`SECRET_KEY`，被 `.gitignore` 忽略） |
+| 数据库迁移版本 | `d712567bfa3f`（head，含 `ai_chat_sessions` / `ai_chat_messages`）；部署脚本每次自动 `flask db upgrade` |
+| 备份 | `/home/fin/backups/`（初始备份 `initial-20261105/`；每日 `daily/fin-backup-*.tar.gz`；升级前快照 `pre-deploy-*`；手工备份 `manual/`） |
 
 **常用命令**
 
 ```bash
-# 日常更新（幂等，含部署前快照 + 6 项健康检查）
+# 日常更新（幂等，含部署前快照、数据库迁移、9 项健康检查）
 cd /home/fin/fin && git pull origin main && ./deploy/deploy-existing.sh
 
 # 服务状态 / 日志
@@ -38,6 +39,47 @@ journalctl -u fin -u fin-refund -n 100 --no-pager
 3. 退费模块写锁是进程内锁，`fin-refund` **必须保持单实例**，不要扩容。
 4. 回滚：`git reset --hard d8270c3` + 用 `/home/fin/backups/initial-20261105/` 恢复数据库与配置 + `systemctl restart fin`；退费服务停掉即可恢复旧站。
 5. `deploy/deploy.sh` 与 `deploy/supervisor.conf.example` 面向「全新服务器 + venv + Supervisor」，**不适用于这台既有站点**，请勿执行。
+
+### AI 对话分析（2026-11-10 修复上线）
+
+入口：`http://101.200.231.62:5050/ai`（**仅管理员可见可用**）。
+
+**此前不可用的三个根因，已全部修复**
+
+| 根因 | 表现 | 修复 |
+|---|---|---|
+| `ai_chat_sessions` / `ai_chat_messages` 两表从未创建（`alembic_version` 为空，两个迁移均未在服务器执行） | 新建会话即 `OperationalError` → 500 | 备份数据库后 `flask db stamp 55b49e43fd3b` 标记基线，再 `flask db upgrade` 执行 `d712567bfa3f` 建表；`deploy-existing.sh` 第 4 步已内置幂等迁移逻辑，后续升级不会再漏 |
+| `.env` 有 `DEEPSEEK_API_KEY` 但未设 `AI_PROVIDER`，`get_ai_provider()` 恒返回 None | 只有关键词兜底与模板话术，无真实 AI 意图识别 | `.env` 追加 `AI_PROVIDER=deepseek`（密钥已存在，无需新增）；真实调用实测返回正常 |
+| AI 页面全部 `.ai-*` 类在 `custom.css` 中无定义，Chart.js / Bootstrap 全部依赖 jsdelivr CDN | 页面是无排版的裸 div 堆叠；国内浏览器若取不到 CDN，图表与布局一起失效 | 补齐整套 `.ai-` 样式；Chart.js 4.4.1、Bootstrap 5.3.2、Bootstrap Icons 1.11.1（含 woff2 字体）全部下载到 `static/vendor/`，模板改本地引用 |
+
+**同时修复的功能性缺陷**
+
+- 未指定日期时默认按「本月」统计，而线上 181 条流水全部集中在 **2026-04**，导致每个快捷提问都返回空图、AI 还会生成一大段「数据缺失」报告。现改为默认按**最近有数据的月份**统计，回复里标注实际区间；空结果直接给出数据覆盖范围与可用提问示例，不再调用模型。
+- 趋势查询不再按日历近 6 个月补零柱，改为取真实有交易的最近 6 个月。
+- 日期解析支持非补零写法（`2024-1-1`）、中文区间（`2024年1月1日至2024年3月31日`），且区间判断前置，不会被「YYYY年M月」规则截断。
+- 历史消息去掉与当前提问重复的一条（路由层先落库再分析），并按 `id` 二级排序保证同一秒内的顺序稳定。
+- 饼图悬浮提示改为兼容 `context.parsed` 数值（原固定取 `parsed.y`，饼图必然报错）。
+- `clearChat()` 原先重建 `chartArea.innerHTML`，导致顶部缓存的 canvas / welcome 引用指向脱离 DOM 的旧节点，图表渲染到不可见画布上；现改为常驻双容器 + 实时查询节点。
+- 空数据不再渲染空图表区；历史会话重放只渲染最后一张图；请求失败显示后端真实错误。
+- `Query.get()` 与 `datetime.utcnow()` 弃用调用已替换（时间戳仍为 naive UTC，与既有数据一致）。
+
+**配置与自查**
+
+```bash
+# .env 中必须存在（密钥本身不要写入任何文档或仓库）
+DEEPSEEK_API_KEY=...
+DEEPSEEK_BASE_URL=https://api.deepseek.com
+AI_PROVIDER=deepseek
+```
+
+- 页面顶部状态条显示当前 provider / model / 配置状态；点「测试连通」会发一条极小的真实请求，返回「正常」即链路通。
+- 接口：`GET /ai/status`（只返回配置摘要，**不返回密钥**）、`POST /ai/status/ping`。均需管理员登录。
+- 状态为 `disabled` 表示未设 `AI_PROVIDER`，功能仍可用但只有关键词兜底；`error` 表示缺密钥或驱动初始化失败，看 `journalctl -u fin -n 100`。
+- 依赖：`openai` Python 包（服务器已装 2.35.1）；`anthropic` 未安装，不影响 DeepSeek 通道。若切 Claude/Qwen 需先 `INSTALL_PIP=1 ./deploy/deploy-existing.sh` 或单独补装对应包。
+
+**提问示例**
+
+`各项目收入汇总`、`支出结构分析`、`收支趋势`、`盈亏概况`、`2026年4月各项目收入`、`2026年4月1日至2026年4月22日盈亏概况`。明确写出「本月」时仍严格按自然月统计；若该月无数据会提示数据覆盖范围，不会给出空图。
 
 ### 微信内登录（当前正式方案，2026-11-10 确认长期使用）
 
@@ -274,8 +316,8 @@ server {
 
 ## 九、常见问题
 
-### Q1: `flask db upgrade` 报错找不到表？
-因为当前迁移文件缺少早期基础表的创建脚本。首次部署请使用 `db.create_all()`（见第四节）。
+### Q1: `flask db upgrade` 报错找不到表 / 重复建表？
+因为当前迁移文件缺少早期基础表的创建脚本。全新部署请先用 `db.create_all()`（见第四节）再 `flask db stamp head`。**既有站点**（如 `/home/fin/fin`）不要手工执行裸 upgrade：`alembic_version` 为空但表结构已含基线内容时，会重复建表报「table already exists」。直接跑 `./deploy/deploy-existing.sh`，脚本会先做 WAL 安全备份、按实际结构自动 stamp 基线，再 `flask db upgrade`，全过程幂等。
 
 ### Q2: 页面中文乱码？
 确保服务器系统locale支持 UTF-8，且 Gunicorn/Python 运行环境编码为 UTF-8。

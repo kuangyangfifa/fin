@@ -26,6 +26,13 @@
 
     <!-- Right Main: Chat Area -->
     <div class="ai-chat-main">
+        <!-- AI configuration status -->
+        <div class="ai-status-bar">
+            <span class="ai-status-dot" id="aiStatusDot"></span>
+            <span id="aiStatusText">正在检查 AI 配置…</span>
+            <button type="button" class="btn btn-sm btn-link" id="aiPingBtn">测试连通</button>
+        </div>
+
         <!-- Messages Area -->
         <div class="ai-messages" id="messagesArea">
             <div class="ai-welcome" id="welcomeMessage">
@@ -35,27 +42,28 @@
                 <h4>你好！我是 AI 财务分析助手</h4>
                 <p>你可以问我关于收入、支出、趋势分析等问题</p>
                 <div class="quick-questions">
-                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月各项目收入是多少？">
-                        本月各项目收入
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="各项目收入汇总">
+                        各项目收入
                     </button>
                     <button class="btn btn-sm btn-outline-primary quick-question" data-question="支出结构分析">
                         支出结构分析
                     </button>
-                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="近6个月趋势">
-                        近6个月趋势
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="收支趋势">
+                        收支趋势
                     </button>
-                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月盈亏概况">
-                        本月盈亏概况
+                    <button class="btn btn-sm btn-outline-primary quick-question" data-question="盈亏概况">
+                        盈亏概况
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- Chart Area -->
+        <!-- Chart Area: canvas 与表格容器常驻，不做整体 innerHTML 重建 -->
         <div class="ai-chart-area" id="chartArea" style="display: none;">
-            <div class="chart-container">
+            <div class="chart-container" id="chartCanvasWrap">
                 <canvas id="chatChart"></canvas>
             </div>
+            <div class="ai-table-container" id="chartTableWrap" style="display: none;"></div>
         </div>
 
         <!-- Input Area -->
@@ -78,25 +86,33 @@
     let currentSessionId = null;
     let currentChart = null;
 
-    // DOM elements
+    // 容器级引用（这些节点不会被重建）
     const sessionList = document.getElementById('sessionList');
     const sessionListEmpty = document.getElementById('sessionListEmpty');
     const messagesArea = document.getElementById('messagesArea');
-    const welcomeMessage = document.getElementById('welcomeMessage');
     const chartArea = document.getElementById('chartArea');
-    const chatCanvas = document.getElementById('chatChart');
+    const chartCanvasWrap = document.getElementById('chartCanvasWrap');
+    const chartTableWrap = document.getElementById('chartTableWrap');
     const chatForm = document.getElementById('chatForm');
     const messageInput = document.getElementById('messageInput');
     const sendBtn = document.getElementById('sendBtn');
     const newSessionBtn = document.getElementById('newSessionBtn');
+    const aiStatusDot = document.getElementById('aiStatusDot');
+    const aiStatusText = document.getElementById('aiStatusText');
+    const aiPingBtn = document.getElementById('aiPingBtn');
 
-    // Load sessions on page load
+    // welcome 与 canvas 会在 clearChat 中被重建或复用，必须按需实时查询，
+    // 不能在 IIFE 顶部缓存引用（旧引用会指向已脱离 DOM 的节点）。
+    function getWelcome() { return document.getElementById('welcomeMessage'); }
+    function getChatCanvas() { return document.getElementById('chatChart'); }
+
     loadSessions();
+    loadAiStatus();
 
-    // New session button
     newSessionBtn.addEventListener('click', createSession);
+    aiPingBtn.addEventListener('click', pingAi);
+    bindQuickQuestions();
 
-    // Chat form submit
     chatForm.addEventListener('submit', function(e) {
         e.preventDefault();
         const message = messageInput.value.trim();
@@ -104,22 +120,55 @@
         sendMessage(message);
     });
 
-    // Quick question buttons
-    document.querySelectorAll('.quick-question').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const question = this.dataset.question;
-            sendMessage(question);
+    function bindQuickQuestions() {
+        document.querySelectorAll('.quick-question').forEach(btn => {
+            btn.addEventListener('click', function() {
+                sendMessage(this.dataset.question);
+            });
         });
-    });
+    }
+
+    // --- AI 配置状态 ---
+
+    function loadAiStatus() {
+        fetch('/ai/status')
+            .then(res => res.json())
+            .then(s => {
+                aiStatusDot.className = 'ai-status-dot ai-status-' + s.state;
+                aiStatusText.textContent = s.state === 'ready'
+                    ? 'AI：' + s.provider_label + '（' + s.model + '）已就绪'
+                    : 'AI：' + s.message;
+                aiStatusText.title = s.base_url || s.message;
+            })
+            .catch(() => {
+                aiStatusDot.className = 'ai-status-dot ai-status-error';
+                aiStatusText.textContent = 'AI：状态检查失败';
+            });
+    }
+
+    function pingAi() {
+        const btn = aiPingBtn;
+        btn.disabled = true;
+        aiStatusText.textContent = '正在测试模型连通…';
+        fetch('/ai/status/ping', {method: 'POST'})
+            .then(res => res.json())
+            .then(d => {
+                aiStatusDot.className = 'ai-status-dot ai-status-' + (d.ok ? 'ready' : 'error');
+                aiStatusText.textContent = 'AI：' + d.message;
+            })
+            .catch(() => {
+                aiStatusDot.className = 'ai-status-dot ai-status-error';
+                aiStatusText.textContent = 'AI：连通测试请求失败';
+            })
+            .finally(() => { btn.disabled = false; });
+    }
 
     // --- Session Management ---
 
     function loadSessions() {
         fetch('/ai/sessions')
             .then(res => res.json())
-            .then(sessions => {
-                renderSessionList(sessions);
-            })
+            .then(sessions => { renderSessionList(sessions); })
             .catch(err => console.error('Failed to load sessions:', err));
     }
 
@@ -133,8 +182,6 @@
 
         sessionListEmpty.style.display = 'none';
         let html = '';
-
-        // Group by date
         let groups = {};
         sessions.forEach(s => {
             const dateStr = s.updated_at ? s.updated_at.split(' ')[0] : s.created_at;
@@ -143,24 +190,23 @@
         });
 
         for (const [dateStr, items] of Object.entries(groups)) {
-            html += `<div class="session-date-group"><small class="text-muted">${dateStr}</small>`;
+            html += '<div class="session-date-group"><small class="text-muted">' + escapeHtml(dateStr) + '</small>';
             items.forEach(s => {
                 const active = s.id === currentSessionId ? ' active' : '';
-                html += `<div class="ai-session-item${active}" data-id="${s.id}">
-                    <div class="ai-session-title">${escapeHtml(s.title)}</div>
-                    <div class="ai-session-actions">
-                        <button class="btn btn-sm btn-icon btn-delete-session" data-id="${s.id}" title="删除">
-                            <i class="bi bi-trash"></i>
-                        </button>
-                    </div>
-                </div>`;
+                html += '<div class="ai-session-item' + active + '" data-id="' + s.id + '">' +
+                    '<div class="ai-session-title">' + escapeHtml(s.title) + '</div>' +
+                    '<div class="ai-session-actions">' +
+                        '<button class="btn btn-sm btn-icon btn-delete-session" data-id="' + s.id + '" title="删除">' +
+                            '<i class="bi bi-trash"></i>' +
+                        '</button>' +
+                    '</div>' +
+                '</div>';
             });
             html += '</div>';
         }
 
         sessionList.innerHTML = html;
 
-        // Bind click events
         sessionList.querySelectorAll('.ai-session-item').forEach(item => {
             item.addEventListener('click', function(e) {
                 if (e.target.closest('.btn-delete-session')) return;
@@ -195,13 +241,21 @@
         currentSessionId = sessionId;
         loadSessions();
 
-        fetch(`/ai/sessions/${sessionId}`)
+        fetch('/ai/sessions/' + sessionId)
             .then(res => res.json())
             .then(data => {
                 clearChat();
-                data.messages.forEach(msg => {
-                    appendMessage(msg.role, msg.content, msg.chart_type, msg.chart_data);
+                let lastChart = null;
+                (data.messages || []).forEach(msg => {
+                    appendMessage(msg.role, msg.content);
+                    if (msg.role === 'assistant' && msg.chart_type && msg.chart_data) {
+                        lastChart = {type: msg.chart_type, data: msg.chart_data};
+                    }
                 });
+                // 只渲染最后一张图，避免历史重放时反复创建销毁图表
+                if (lastChart && hasChartData(lastChart.type, lastChart.data)) {
+                    renderChart(lastChart.type, lastChart.data);
+                }
             })
             .catch(err => console.error('Failed to load session:', err));
     }
@@ -209,7 +263,7 @@
     function deleteSession(sessionId) {
         if (!confirm('确定删除此对话吗？')) return;
 
-        fetch(`/ai/sessions/${sessionId}`, { method: 'DELETE' })
+        fetch('/ai/sessions/' + sessionId, { method: 'DELETE' })
             .then(res => res.json())
             .then(() => {
                 if (currentSessionId === sessionId) {
@@ -224,7 +278,6 @@
     // --- Chat ---
 
     function sendMessage(message) {
-        // If no session, create one first
         if (!currentSessionId) {
             fetch('/ai/sessions', {
                 method: 'POST',
@@ -239,72 +292,77 @@
                 });
             return;
         }
-
         doSendMessage(message, currentSessionId);
     }
 
     function doSendMessage(message, sessionId) {
-        // Show user message immediately
         appendMessage('user', message);
         messageInput.value = '';
+        sendBtn.disabled = true;
 
-        // Show loading indicator
         const loadingId = appendLoading();
 
-        // Send to server
-        fetch(`/ai/chat/${sessionId}`, {
+        fetch('/ai/chat/' + sessionId, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({message: message}),
         })
-            .then(res => {
-                if (!res.ok) throw new Error('请求失败');
-                return res.json();
-            })
-            .then(data => {
+            .then(res => res.json().then(body => ({ok: res.ok, body: body})))
+            .then(result => {
                 removeLoading(loadingId);
-                appendMessage('assistant', data.reply, data.chart_type, data.chart_data);
-                loadSessions(); // Refresh session list
+                if (!result.ok || result.body.error) {
+                    appendMessage('assistant', '请求失败：' + (result.body.error || '服务异常，请查看后台日志'));
+                    return;
+                }
+                const data = result.body;
+                appendMessage('assistant', data.reply, data.date_range_note);
+                if (data.chart_type && hasChartData(data.chart_type, data.chart_data)) {
+                    renderChart(data.chart_type, data.chart_data);
+                } else {
+                    hideChart();
+                }
+                loadSessions();
             })
             .catch(err => {
                 removeLoading(loadingId);
-                appendMessage('assistant', '抱歉，处理您的请求时出现了错误，请稍后重试。');
-            });
+                appendMessage('assistant', '请求失败：' + err.message);
+            })
+            .finally(() => { sendBtn.disabled = false; messageInput.focus(); });
     }
 
-    function appendMessage(role, content, chartType, chartData) {
-        // Hide welcome message
-        if (welcomeMessage) welcomeMessage.style.display = 'none';
+    function appendMessage(role, content, rangeNote) {
+        const welcome = getWelcome();
+        if (welcome) welcome.style.display = 'none';
 
         const msgDiv = document.createElement('div');
-        msgDiv.className = `ai-message ai-message-${role}`;
+        msgDiv.className = 'ai-message ai-message-' + role;
 
         const bubble = document.createElement('div');
         bubble.className = 'ai-message-bubble';
         bubble.style.whiteSpace = 'pre-wrap';
         bubble.style.wordBreak = 'break-word';
-        bubble.textContent = content;
-
+        bubble.textContent = content == null ? '' : content;
         msgDiv.appendChild(bubble);
-        messagesArea.appendChild(msgDiv);
 
-        // Render chart if applicable
-        if (chartData && chartType && role === 'assistant') {
-            renderChart(chartType, chartData);
+        if (rangeNote) {
+            const note = document.createElement('div');
+            note.className = 'ai-range-note';
+            note.textContent = rangeNote;
+            msgDiv.appendChild(note);
         }
 
-        // Scroll to bottom
+        messagesArea.appendChild(msgDiv);
         messagesArea.scrollTop = messagesArea.scrollHeight;
     }
 
     function appendLoading() {
-        if (welcomeMessage) welcomeMessage.style.display = 'none';
+        const welcome = getWelcome();
+        if (welcome) welcome.style.display = 'none';
 
         const id = 'loading-' + Date.now();
         const msgDiv = document.createElement('div');
         msgDiv.className = 'ai-message ai-message-assistant';
         msgDiv.id = id;
-
         msgDiv.innerHTML = '<div class="ai-message-bubble ai-loading"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
         messagesArea.appendChild(msgDiv);
         messagesArea.scrollTop = messagesArea.scrollHeight;
@@ -316,23 +374,40 @@
         if (el) el.remove();
     }
 
-    function renderChart(chartType, chartData) {
-        // Show chart area
-        chartArea.style.display = '';
-
-        // Destroy existing chart
+    function destroyChart() {
         if (currentChart) {
             currentChart.destroy();
             currentChart = null;
         }
+    }
 
-        // For table type, render HTML table instead
+    function hideChart() {
+        destroyChart();
+        chartArea.style.display = 'none';
+        chartTableWrap.innerHTML = '';
+    }
+
+    function hasChartData(type, data) {
+        if (!data) return false;
+        if (type === 'table') return !!(data.table && data.table.length);
+        return !!(data.labels && data.labels.length);
+    }
+
+    function renderChart(chartType, chartData) {
+        chartArea.style.display = '';
+        destroyChart();
+
         if (chartType === 'table') {
             renderTable(chartData);
             return;
         }
 
-        const ctx = chatCanvas.getContext('2d');
+        chartCanvasWrap.style.display = '';
+        chartTableWrap.style.display = 'none';
+        chartTableWrap.innerHTML = '';
+
+        const canvas = getChatCanvas();
+        if (!canvas) return;
 
         const config = {
             type: chartType,
@@ -341,16 +416,21 @@
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
-                    legend: {
-                        position: 'bottom',
-                    },
+                    legend: { position: 'bottom' },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                let label = context.dataset.label || '';
+                                // 饼图 context.parsed 是数值，柱/线图是 {x, y}；
+                                // 原实现固定取 parsed.y，饼图悬浮提示会报错。
+                                const parsed = context.parsed;
+                                const value = (typeof parsed === 'number')
+                                    ? parsed
+                                    : (parsed && typeof parsed.y === 'number' ? parsed.y : 0);
+                                let label = context.dataset.label || context.label || '';
                                 if (label) label += ': ';
-                                label += '¥' + context.parsed.y.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                                return label;
+                                return label + '¥' + Number(value).toLocaleString('zh-CN', {
+                                    minimumFractionDigits: 2, maximumFractionDigits: 2
+                                });
                             }
                         }
                     }
@@ -359,36 +439,45 @@
                     y: {
                         beginAtZero: true,
                         ticks: {
-                            callback: function(value) {
-                                return '¥' + value.toLocaleString();
-                            }
+                            callback: function(value) { return '¥' + Number(value).toLocaleString('zh-CN'); }
                         }
                     }
                 } : {}
             }
         };
 
-        currentChart = new Chart(ctx, config);
+        currentChart = new Chart(canvas.getContext('2d'), config);
     }
 
     function renderTable(chartData) {
-        chartArea.style.display = '';
-        chartArea.innerHTML = '<div class="ai-table-container"><table class="table table-sm"><tbody></tbody></table></div>';
-        const tbody = chartArea.querySelector('tbody');
-        chartData.table.forEach(row => {
+        chartCanvasWrap.style.display = 'none';
+        chartTableWrap.style.display = '';
+
+        const table = document.createElement('table');
+        table.className = 'table table-sm';
+        const tbody = document.createElement('tbody');
+        (chartData.table || []).forEach(row => {
             const tr = document.createElement('tr');
-            const isNegative = row.value < 0;
-            tr.innerHTML = `<td>${escapeHtml(row.item)}</td><td class="${isNegative ? 'text-danger fw-bold' : 'text-success fw-bold'}">¥${row.value.toLocaleString('zh-CN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>`;
+            const tdName = document.createElement('td');
+            tdName.textContent = row.item;
+            const tdValue = document.createElement('td');
+            tdValue.className = row.value < 0 ? 'text-danger fw-bold' : 'text-success fw-bold';
+            tdValue.textContent = '¥' + Number(row.value).toLocaleString('zh-CN', {
+                minimumFractionDigits: 2, maximumFractionDigits: 2
+            });
+            tr.appendChild(tdName);
+            tr.appendChild(tdValue);
             tbody.appendChild(tr);
         });
+        table.appendChild(tbody);
+        chartTableWrap.innerHTML = '';
+        chartTableWrap.appendChild(table);
     }
 
     function clearChat() {
+        hideChart();
         messagesArea.innerHTML = '';
-        chartArea.style.display = 'none';
-        chartArea.innerHTML = '<div class="chart-container"><canvas id="chatChart"></canvas></div>';
 
-        // Re-add welcome message
         const welcome = document.createElement('div');
         welcome.className = 'ai-welcome';
         welcome.id = 'welcomeMessage';
@@ -397,26 +486,19 @@
             <h4>你好！我是 AI 财务分析助手</h4>
             <p>你可以问我关于收入、支出、趋势分析等问题</p>
             <div class="quick-questions">
-                <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月各项目收入是多少？">本月各项目收入</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="各项目收入汇总">各项目收入</button>
                 <button class="btn btn-sm btn-outline-primary quick-question" data-question="支出结构分析">支出结构分析</button>
-                <button class="btn btn-sm btn-outline-primary quick-question" data-question="近6个月趋势">近6个月趋势</button>
-                <button class="btn btn-sm btn-outline-primary quick-question" data-question="本月盈亏概况">本月盈亏概况</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="收支趋势">收支趋势</button>
+                <button class="btn btn-sm btn-outline-primary quick-question" data-question="盈亏概况">盈亏概况</button>
             </div>
         `;
         messagesArea.appendChild(welcome);
-
-        // Re-bind quick question buttons
-        document.querySelectorAll('.quick-question').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const question = this.dataset.question;
-                sendMessage(question);
-            });
-        });
+        bindQuickQuestions();
     }
 
     function escapeHtml(text) {
         const div = document.createElement('div');
-        div.textContent = text;
+        div.textContent = text == null ? '' : String(text);
         return div.innerHTML;
     }
 })();
