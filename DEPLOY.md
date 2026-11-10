@@ -33,17 +33,41 @@ journalctl -u fin -u fin-refund -n 100 --no-pager
 
 **注意事项**
 
-1. **域名 `lexueisland.site` 的 ICP 备案白名单尚未在阿里云生效**（域名已解析、用户侧称备案已通过，但仍被边缘拦截），任何端口用域名访问均返回 403；当前仅 IP:5050 可用，签字链接地址已设为 `http://101.200.231.62:5050/refund`。白名单生效后：按下方「备案生效后的 HTTPS 切换」执行，不要手工只改 `publicBaseUrl`。
-2. **微信网页授权暂不可用**（要求 80/443 + 已备案域名），备案完成后在财务后台「微信登录」面板配置 AppID/AppSecret 与 `MP_verify_*.txt`。
+1. **域名 `lexueisland.site` 尚在管局审核、ICP 备案未生效**（2026-11-10 用户确认），任何端口用域名访问均被阿里云边缘拦截返回 403；当前仅 `http://101.200.231.62:5050` 可用，签字链接地址已设为 `http://101.200.231.62:5050/refund`。备案生效后按下方「备案生效后的 HTTPS 切换」执行，不要手工只改 `publicBaseUrl`。
+2. **微信登录采用「免注册进入」，长期不启用公众号网页授权**（2026-11-10 确认，详见下方专节）。财务后台「微信登录」面板请勿填 AppID/AppSecret。
 3. 退费模块写锁是进程内锁，`fin-refund` **必须保持单实例**，不要扩容。
 4. 回滚：`git reset --hard d8270c3` + 用 `/home/fin/backups/initial-20261105/` 恢复数据库与配置 + `systemctl restart fin`；退费服务停掉即可恢复旧站。
 5. `deploy/deploy.sh` 与 `deploy/supervisor.conf.example` 面向「全新服务器 + venv + Supervisor」，**不适用于这台既有站点**，请勿执行。
 
-### 备案生效后的 HTTPS 切换（已备好脚本，待备案拦截解除后执行）
+### 微信内登录（当前正式方案，2026-11-10 确认长期使用）
 
-**当前状态（2026-11-10）**：`lexueisland.site` 已解析到本机，备案通过已超 1 个工作日，但公网按 Host 访问仍被阿里云边缘 `Beaver` 拦截（403 Non-compliance ICP Filing，阻断 ID `00000000006012457343`）。服务器内部带域名 Host 访问 80 为 200，证明拦截不在 Nginx。按阿里云官方说明，超 1 个工作日仍拦截需核查「接入商是否已添加阿里云」「备案类型是否为网站备案」，必要时附阻断 ID 提交工单。
+**结论：不启用公众号网页授权登录，长期使用「免注册进入」，不改代码、不改服务器配置。**
 
-另需提前处理：**公网 TCP 443 不通**，而服务器 firewalld 未运行、iptables INPUT 为 ACCEPT、无进程监听 443，且故障表现为超时（非 RST），判断为**阿里云 ECS 安全组未放行入方向 443**。请先在 ECS 控制台安全组添加 `TCP 443 / 0.0.0.0/0` 入方向规则，否则备案解除后 HTTPS 仍无法访问。证书签发用的是 80 端口 webroot 通道，已实测可读取验证文件。
+公众号为订阅号 / 未认证，按微信官方规则**不具备网页授权接口权限**（仅已微信认证的服务号有「网页授权域名」配置入口）。此外网页授权域名只支持 https、不支持 IP 与端口、需 ICP 备案且新备案满 24 小时、校验文件须放在域名根目录。因此**备案通过也不会自动解锁微信身份登录**，除非另行升级为认证服务号并补齐 HTTPS，本次决定不升级。
+
+**给老师的使用说明（可直接转发）**
+
+> 退费收款单填写入口：http://101.200.231.62:5050/refund/
+> 请在微信中打开。首次进入选「免注册进入」，填写本人姓名和手机号后 4 位即可自动开通，无需注册账号、无需密码；之后在同一微信里再次打开会直接进入工作台，不必再登录。
+> 单据填好后点「复制签字链接」转发给主管、校方，对方在微信里打开即可签字，无需登录。
+> 请勿清除微信浏览器缓存；更换手机或清除缓存后需重新填写一次姓名与手机尾号。
+
+**管理员须知**
+
+- 财务后台「微信登录设置」保持 `AppID` / `AppSecret` 为空（`configured=false`）。一旦填入，前端会在微信内默认选中「微信一键登录」，点击后 `redirect_uri` 为 IP:5050，微信返回「redirect_uri 参数错误」，反而破坏现有可用入口。
+- 当前开关：`nameLogin=true`、`nameLoginNeedPhone4=true`（`/home/fin/refund-data/config.json`）。手机后 4 位用于区分同名老师，不建议关闭。
+- 登录态由前端 `localStorage.rf_token` 持久化，启动时调 `/me` 校验，有效则直接进入工作台；失效才回登录页。无需服务端改动。
+- 微信内访问 HTTP + IP 链接一般可正常打开，但微信可能提示「非微信官方网页」；**不要改发未备案域名链接**（会被 403 拦截）。
+
+**已发现、将来才需处理的坑**
+
+后台「域名校验文件托管」把 `MP_verify_*.txt` 内容存进 `config.json`、由 Node 在 `/MP_verify_xxx.txt` 返回；但当前 Nginx 把域名根 `/` 反代到 Flask，实测 `/MP_verify_test.txt` 为 404，只有 `/refund/MP_verify_test.txt` 为 200，而微信只认域名根路径。若将来升级认证服务号并切 HTTPS，需统一这两套机制（Nginx 层把 `/MP_verify_*.txt` 反代到 Node，或按 `nginx-https.conf.example` 由 Nginx 直接托管文件），否则网页授权域名校验失败。
+
+### 备案生效后的 HTTPS 切换（暂缓，域名仍在管局审核；脚本已备好）
+
+**当前状态（2026-11-10）**：`lexueisland.site` 已解析到本机，但**备案仍在管局审核**，公网按 Host 访问被阿里云边缘 `Beaver` 拦截（403 Non-compliance ICP Filing，阻断 ID `00000000006012457343`）。纯 IP:80 与 IP:5050 为 200，服务器内部带域名 Host 访问 80 为 200，证明拦截在阿里云公网入口层、与 Nginx 无关。此阶段属正常审核等待，无需提交工单；审核通过且白名单同步后再执行下列步骤（官方口径为通过后约 7 小时至 1 个工作日）。
+
+可提前处理的一项：**公网 TCP 443 不通**。服务器 firewalld 未运行、iptables INPUT 为 ACCEPT、无进程监听 443，且故障表现为超时（非 RST），判断为**阿里云 ECS 安全组未放行入方向 443**。可在 ECS 控制台安全组添加 `TCP 443 / 0.0.0.0/0` 入方向规则，否则备案解除后 HTTPS 仍无法访问。证书签发走 80 端口 webroot 通道，已实测可读取验证文件。
 
 前置确认（**必须在本机而非服务器执行**，服务器内部访问会走内网直通而误判）：
 
@@ -57,14 +81,14 @@ curl -I http://lexueisland.site/     # 不再返回 403 才可继续
 | 2 | `cd /home/fin/fin && git pull origin main` | 拉取出证书与切换脚本 |
 | 3 | `CERTBOT_EMAIL='你的邮箱' ./deploy/issue-cert.sh` | 从 EPEL 装 certbot 1.22，webroot 签发，配置每日 03:25 自动续期 |
 | 4 | `./deploy/switch-https.sh` | 自动备份 → 装 80 跳转 + 443 双模块路由 → 改 `publicBaseUrl` 为 `https://lexueisland.site/refund` → 5 项健康检查 |
-| 5 | 微信后台配置 | 把公众号后台下载的 `MP_verify_XXXXXXXX.txt` 放到服务器 `/usr/share/nginx/html/`（该目录不入库），在财务后台「微信登录」面板填 AppID/AppSecret，公众号「网页授权域名」填 `lexueisland.site`，重启 `fin-refund` |
+| 5 | 微信后台配置（**本次不执行**） | 当前公众号为订阅号/未认证，无网页授权权限。仅当升级为认证服务号后，才把 `MP_verify_XXXXXXXX.txt` 放到 `/usr/share/nginx/html/`（不入库）、在财务后台填 AppID/AppSecret、公众号「网页授权域名」填 `lexueisland.site`，重启 `fin-refund` |
 
 设计约束：
 
 - **保留 5050 HTTP 入口**，此前已发出的 `http://101.200.231.62:5050/refund/...` 签字链接继续可用；确认旧链接全部失效后再考虑关闭。
 - **不启用 HSTS**：HSTS 按主机名生效（不含端口），会把 `http://lexueisland.site:5050` 也强制升级，导致旧链接失效。
 - 80 端口保留 `/.well-known/acme-challenge/` 例外，不影响 Let's Encrypt 续期；该例外已实测可从域名 Host 读取验证文件。
-- 80 与 443 均托管 `MP_verify_*.txt`（正则 location，优先于 301 与反代），微信域名校验文件放 `/usr/share/nginx/html/` 即可，无需改 Nginx。
+- 80 与 443 均托管 `MP_verify_*.txt`（正则 location，优先于 301 与反代）。**注意这是 Nginx 文件系统托管**，与后台面板把内容存 `config.json` 是两套机制；若真要启用网页授权，须二选一：文件放 `/usr/share/nginx/html/`，或改 Nginx 反代到 Node，不要两边各填一半。
 - 回滚：`./deploy/switch-https.sh --revert`（从 `/home/fin/backups/https-*` 恢复 Nginx 配置与退费配置）。
 
 ## 一、环境要求
